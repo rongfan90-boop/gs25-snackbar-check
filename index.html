@@ -117,6 +117,14 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 #scanBottom{color:#fff;padding:12px 14px calc(16px + var(--safe-b));background:#111}
 #lastScan{min-height:44px;border-radius:12px;padding:10px 12px;background:#222;font-size:14px;margin-bottom:10px}
 #lastScan.ok{background:#0e5b34}#lastScan.bad{background:#7a1c1e}
+.resOv{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:24px 20px calc(24px + var(--safe-b));cursor:pointer}
+.resOv.on{display:flex}.resOv.ok{background:#0f8a4c}.resOv.bad{background:#c62a2d}.resOv.warn{background:#4a5563}
+.resIc{font-size:72px;line-height:1}.resTitle{font-size:24px;font-weight:900;margin:14px 0 6px;word-break:keep-all}
+.resSub{font-size:16px;opacity:.92;white-space:pre-line;max-width:420px}
+.resNext{margin-top:34px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.6);border-radius:16px;padding:16px 22px;font-size:18px;font-weight:700;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{transform:scale(1.04)}}
+.resStop{margin-top:18px;background:none;border:0;color:#fff;opacity:.85;text-decoration:underline;font-size:14px;padding:10px}
+#lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
 .toast{position:fixed;left:50%;top:calc(70px + var(--safe-t));transform:translateX(-50%);z-index:80;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
 .toast.on{opacity:.95}
 .flash{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:0;transition:opacity .25s}
@@ -195,8 +203,8 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
     </div>
     <div class="sec-title" style="margin-top:10px">스캔하면</div>
     <div class="toggle" id="modeToggle">
-      <button data-m="qty">수량 입력창 띄우기</button>
-      <button data-m="one">1개씩 바로 +1</button>
+      <button data-m="full">찍으면 전량 입고 처리</button>
+      <button data-m="one">찍을 때마다 1개씩 +1</button>
     </div>
   </div>
 
@@ -208,7 +216,7 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
       <button class="chip" data-f="done">완료</button>
       <button class="chip" data-f="over">초과·목록외</button>
     </div>
-    <div class="hint">품목을 누르면 수량을 직접 수정할 수 있어요 (바코드 없는 상품도 OK).</div>
+    <div class="hint">수량이 다르게 들어왔으면 품목을 눌러 직접 고쳐주세요 (바코드 없는 상품도 OK).</div>
     <div class="list" id="checkView"></div>
     <button class="btn ghost w100" id="btnResetRecv" style="margin-top:10px">입고수량만 0으로 초기화</button>
   </div>
@@ -253,11 +261,8 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
     <h2>⚙️ 분할 설정</h2>
     <label class="f">하루 배송 횟수</label>
     <div class="chips" id="nChips"></div>
-    <label class="f" style="margin-top:6px">나누는 방식</label>
-    <div class="toggle" id="methodToggle">
-      <button data-m="equal">균등하게</button>
-      <button data-m="ratio">비율 지정(%)</button>
-    </div>
+    <label class="f" style="margin-top:6px">회차별 비율(%)</label>
+    <div class="hint" style="margin-top:0">예) 오전 60 · 오후 40 처럼 회차마다 몇 %를 보낼지 적어주세요.</div>
     <div class="rounds" id="roundsCfg" style="margin-top:10px"></div>
     <div class="grid2" style="margin-top:8px">
       <div><label class="f">자투리 몰아줄 회차</label>
@@ -322,24 +327,6 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
   </div>
 </div>
 
-<!-- 목록외 바코드 시트 -->
-<div class="ov" id="unkOv">
-  <div class="sheet">
-    <h3>⚠️ 납품목록에 없는 바코드</h3>
-    <div class="code" id="unkCode"></div>
-    <div class="hint" style="margin-top:10px">목록외 입고로 기록하거나, 바코드가 등록 안 된 목록 상품에 연결할 수 있어요.</div>
-    <label class="f">상품명 (목록외 기록 시)</label>
-    <input type="text" id="unkName" placeholder="예) 꼬북칩 콘스프맛">
-    <label class="f" style="margin-top:8px">수량</label>
-    <input type="number" id="unkQty" value="1" inputmode="numeric">
-    <button class="btn pri w100" id="unkAdd" style="margin-top:10px">목록외 입고로 기록</button>
-    <label class="f" style="margin-top:14px">또는 목록 상품에 이 바코드 연결</label>
-    <select id="unkLink"></select>
-    <button class="btn teal w100" id="unkLinkBtn" style="margin-top:6px">연결하고 입고 처리</button>
-    <button class="btn w100" id="unkCancel" style="margin-top:8px">닫기</button>
-  </div>
-</div>
-
 <!-- 확인 다이얼로그 -->
 <div class="ov" id="cfmOv" style="align-items:center">
   <div class="sheet" style="border-radius:18px;margin:16px;max-width:400px">
@@ -363,6 +350,14 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 </div>
 <div id="readerFile" style="display:none"></div>
 
+<!-- 사진 스캔 결과 -->
+<label class="resOv" id="resOv" for="filePhoto">
+  <div class="resIc" id="resIc"></div>
+  <div class="resTitle" id="resTitle"></div>
+  <div class="resSub" id="resSub"></div>
+  <div class="resNext">📸 화면을 누르면 다음 상품 촬영</div>
+  <button type="button" class="resStop" id="resStop">그만 찍고 목록 보기</button>
+</label>
 <div class="toast" id="toast"></div>
 <div class="flash" id="flash"></div>
 
@@ -377,9 +372,10 @@ const uid=()=>Math.random().toString(36).slice(2,9);
 const num=v=>{const n=parseInt(String(v).replace(/[^\d-]/g,''),10);return isNaN(n)?0:n};
 const normCode=c=>{let s=String(c||'').replace(/[\s-]/g,'');if(/^\d+$/.test(s))s=s.replace(/^0+(?=\d)/,'');return s};
 
-let S={items:[],extras:[],meta:{store:'',date:today(),round:''},mode:'qty',filter:'all',opt:{done:true,code:false},
+let S={items:[],extras:[],meta:{store:'',date:today(),round:''},mode:'full',filter:'all',opt:{done:true,code:false},
   split:{n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},tab:'t-list'};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.split=Object.assign({n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},o.split||{});S.meta=Object.assign({store:'',date:today(),round:''},o.meta||{});}}catch(e){}
+if(S.mode!=='one')S.mode='full';
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
 /* ---------- feedback ---------- */
@@ -531,7 +527,7 @@ $('#checkView').addEventListener('click',e=>{
 $('#btnResetRecv').onclick=async()=>{if(await confirmBox('입고수량을 초기화할까요?','납품목록은 그대로 두고 입고 기록과 목록외 품목만 지워요.')){S.items.forEach(x=>x.recv=0);S.extras=[];save();renderCheck()}};
 
 /* qty sheet */
-let qItem=null,qExtra=false,qOp='add',qQueue=[],afterSheet=null;
+let qItem=null,qExtra=false,qOp='add',afterSheet=null;
 function openQty(it,extra,fromScan){
   qItem=it;qExtra=!!extra;qOp='add';
   $('#qName').textContent=it.name;$('#qCode').textContent=it.code?('바코드 '+it.code):'바코드 없음';
@@ -555,45 +551,28 @@ $('#qOk').onclick=()=>{const v=Math.max(0,num($('#qInput').value));if(qOp==='add
 $('#qDelExtra').onclick=()=>{S.extras=S.extras.filter(x=>x!==qItem);save();renderCheck();closeQty()};
 $('#qInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#qOk').click()});
 
-/* unknown sheet */
-let unkCode='';
-function openUnknown(code){
-  unkCode=code;$('#unkCode').textContent='바코드 '+code;$('#unkName').value='';$('#unkQty').value=1;
-  const noCode=S.items.filter(x=>!x.code);
-  $('#unkLink').innerHTML='<option value="">— 상품 선택 —</option>'+(noCode.length?'<optgroup label="바코드 없는 품목">'+noCode.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')+'</optgroup>':'')+
-    '<optgroup label="전체 품목">'+S.items.filter(x=>x.code).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')+'</optgroup>';
-  $('#unkOv').classList.add('on');
-}
-function closeUnk(){$('#unkOv').classList.remove('on');if(afterSheet){const f=afterSheet;afterSheet=null;f()}}
-$('#unkCancel').onclick=closeUnk;
-$('#unkAdd').onclick=()=>{const q=Math.max(1,num($('#unkQty').value));const nm=$('#unkName').value.trim()||'목록외 상품';
-  let ex=S.extras.find(x=>normCode(x.code)===normCode(unkCode));if(ex){ex.recv+=q;if($('#unkName').value.trim())ex.name=nm}else S.extras.push({id:uid(),code:unkCode,name:nm,recv:q});
-  save();renderCheck();toast('목록외 입고로 기록했어요');closeUnk()};
-$('#unkLinkBtn').onclick=()=>{const id=$('#unkLink').value;if(!id){toast('연결할 상품을 골라주세요');return}
-  const it=S.items.find(x=>x.id===id);it.code=unkCode;save();$('#unkOv').classList.remove('on');handleCode(unkCode,true)};
-
 /* ---------- scan handling ---------- */
-function setLast(it,ok,extraText){const el=$('#lastScan');if(!el)return;
-  if(!it){el.className='bad';el.textContent=extraText||'';return}
-  el.className=ok?'ok':'bad';el.innerHTML=`${ok?'✅':'⚠️'} <b>${esc(it.name)}</b> — ${it.recv}${it.qty!=null&&it.qty!==undefined&&!S.extras.includes(it)?' / '+it.qty:''}개`;
-  const t=totals();$('#scanProg').textContent=`입고 ${t.recvIn}/${t.plan}개`;$('#scanProg2').textContent=`남은 품목 ${t.left}`;
-}
-function handleCode(raw,silent){
-  const code=String(raw||'').trim();if(!code)return;
+function scanProg(){const t=totals();$('#scanProg').textContent=`입고 ${t.recvIn}/${t.plan}개`;$('#scanProg2').textContent=`남은 품목 ${t.left}`}
+function setLast(it,ok,text){const el=$('#lastScan');if(!el)return;
+  el.className=(ok?'ok':'bad')+' big';
+  el.innerHTML=it?`✅ <b>${esc(it.name)}</b><br><span style="font-weight:500;font-size:14px">${text||''}</span>`:esc(text||'');scanProg()}
+/* 바코드 1건 처리 → 결과 {ok, it, msg} */
+function applyCode(raw){
+  const code=String(raw||'').trim();if(!code)return null;
   const it=findByCode(code);
-  if(it){
-    if(!silent){beep(true);flash('#14a05a')}
-    if(S.mode==='one'){it.recv+=1;save();renderCheck();setLast(it,true);toast(`${it.name} +1 (${it.recv}/${it.qty})`);nextQueue()}
-    else{pauseLive();afterSheet=()=>{resumeLive();nextQueue()};openQty(it,false,true)}
-  }else{
-    const ex=S.extras.find(x=>normCode(x.code)===normCode(code));
-    if(!silent){beep(false);flash('#e5383b')}
-    if(ex&&S.mode==='one'){ex.recv+=1;save();renderCheck();setLast(ex,false);toast(`목록외 ${ex.name} +1`);nextQueue();return}
-    setLast(null,false,'⚠️ 목록에 없는 바코드 '+code);
-    pauseLive();afterSheet=()=>{resumeLive();nextQueue()};openUnknown(code);
-  }
+  if(!it)return{ok:false,code,msg:'금번 입고 상품이 아닙니다'};
+  let msg;
+  if(S.mode==='one'){it.recv+=1;msg=`+1 → 입고 ${it.recv} / 납품 ${it.qty}개`}
+  else if(it.recv>=it.qty){msg=`이미 입고완료 (${it.recv} / ${it.qty}개)`}
+  else{it.recv=it.qty;msg=`${it.qty}개 입고완료`}
+  save();return{ok:true,it,code,msg};
 }
-function nextQueue(){if(qQueue.length){const c=qQueue.shift();setTimeout(()=>handleCode(c),150)}}
+function handleCode(raw){ /* 실시간 스캔·직접입력: 창 없이 바로 처리 */
+  const r=applyCode(raw);if(!r)return;
+  beep(r.ok);flash(r.ok?'#14a05a':'#e5383b');renderCheck();
+  if(r.ok){setLast(r.it,true,r.msg);toast(`✅ ${r.it.name} · ${r.msg}`)}
+  else{setLast(null,false,`❌ 금번 입고 상품이 아닙니다 (${r.code})`);toast('❌ 금번 입고 상품이 아닙니다')}
+}
 $('#btnManual').onclick=()=>{const v=$('#manualCode').value;$('#manualCode').value='';if(!S.items.length){toast('납품목록을 먼저 등록해주세요');return}handleCode(v)};
 $('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#btnManual').click()}});
 
@@ -613,6 +592,7 @@ $('#btnLive').onclick=async()=>{
     const w=Math.min(window.innerWidth-40,340);
     await live.start({facingMode:'environment'},{fps:12,qrbox:{width:w,height:Math.round(w*.5)},aspectRatio:window.innerHeight/window.innerWidth},
       txt=>{const now=Date.now();if(txt===lastCode&&now-lastAt<1800)return;lastCode=txt;lastAt=now;handleCode(txt)},()=>{});
+    scanProg();
     liveOn=true;paused=false;
   }catch(err){stopLive();cameraFail()}
 };
@@ -634,15 +614,26 @@ async function detectPhoto(file){
       const f=new File([blob],'scan.jpg',{type:'image/jpeg'});const txt=await h.scanFile(f,false);try{h.clear()}catch(_){}if(txt)return[txt]}catch(e){}}
   return[];
 }
-$('#filePhoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+function showRes(kind,icon,title,sub){const o=$('#resOv');o.className='resOv on '+kind;$('#resIc').textContent=icon;$('#resTitle').textContent=title;$('#resSub').textContent=sub||''}
+function hideRes(){$('#resOv').className='resOv'}
+$('#resStop').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();hideRes();renderCheck()});
+$('#filePhoto').addEventListener('click',()=>{hideRes()});
+$('#filePhoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f){hideRes();return}
   if(!S.items.length){toast('납품목록을 먼저 등록해주세요');return}
-  toast('바코드 읽는 중…');
+  showRes('warn','⏳','바코드 읽는 중…','');
   const codes=await detectPhoto(f);
-  if(!codes.length){beep(false);confirmBox('바코드를 못 읽었어요','바코드가 화면 가운데에 크게, 흔들리지 않게 나오도록 다시 찍어주세요.<br>안 되면 아래 숫자를 직접 입력해도 돼요.').then(y=>{if(y)$('#filePhoto').click()});return}
-  if(codes.length>1)toast(`바코드 ${codes.length}개를 찾았어요`);
-  qQueue=codes.slice(1);handleCode(codes[0]);
+  if(!codes.length){beep(false);showRes('warn','🔍','바코드를 못 읽었어요','바코드가 가운데에 크게, 흔들리지 않게\n나오도록 다시 찍어주세요');return}
+  const rs=codes.map(applyCode).filter(Boolean);renderCheck();
+  const okR=rs.filter(r=>r.ok),bad=rs.filter(r=>!r.ok);const t=totals();
+  const tail=`\n\n전체 ${t.recvIn}/${t.plan}개 · 남은 품목 ${t.left}`;
+  beep(bad.length===0);
+  if(rs.length===1){const r=rs[0];
+    if(r.ok)showRes('ok','✅',r.it.name,r.msg+tail);
+    else showRes('bad','❌','금번 입고 상품이 아닙니다','바코드 '+r.code+tail);}
+  else{showRes(bad.length?'bad':'ok',bad.length?'⚠️':'✅',`바코드 ${rs.length}개 인식`,
+    okR.map(r=>'✅ '+r.it.name).concat(bad.map(r=>'❌ '+r.code+' 금번 입고 상품 아님')).join('\n')+tail)}
+  if(t.left===0&&S.items.length){setTimeout(()=>showRes('ok','🎉','전 품목 입고완료!','결과·카톡 탭에서 문구를 복사하세요'),900)}
 };
-
 /* ---------- ③ result ---------- */
 function buildMsg(){
   const t=totals(),m=S.meta,cd=S.opt.code;
@@ -685,7 +676,7 @@ async function copyText(txt,ta){
 $('#btnCopyMsg').onclick=()=>copyText($('#msgBox').value,$('#msgBox'));
 
 /* ---------- ④ split ---------- */
-function syncRounds(){const sp=S.split;
+function syncRounds(){const sp=S.split;sp.method='ratio';
   while(sp.labels.length<sp.n)sp.labels.push((sp.labels.length+1)+'회차');sp.labels.length=sp.n;
   while(sp.ratios.length<sp.n)sp.ratios.push(0);sp.ratios.length=sp.n;
   if(sp.method==='ratio'&&sp.ratios.reduce((a,b)=>a+b,0)===0)sp.ratios=sp.ratios.map(()=>Math.round(100/sp.n));}
@@ -704,12 +695,11 @@ function splitQty(Q){
 function renderSplit(){
   const sp=S.split;syncRounds();
   $('#nChips').innerHTML=[1,2,3,4,5,6].map(k=>`<button class="chip ${k===sp.n?'on':''}" data-n="${k}">${k}회</button>`).join('');
-  $$('#methodToggle button').forEach(b=>b.classList.toggle('on',b.dataset.m===sp.method));
-  $('#remSel').value=sp.rem;$('#unitInp').value=sp.unit;
+    $('#remSel').value=sp.rem;$('#unitInp').value=sp.unit;
   $('#roundsCfg').innerHTML=sp.labels.map((l,i)=>`<div class="rd"><div class="t">${i+1}회차</div>
     <input type="text" data-lbl="${i}" value="${esc(l)}" placeholder="예) 오전 8시">
-    ${sp.method==='ratio'?`<div class="row" style="gap:4px"><input type="number" inputmode="numeric" data-rt="${i}" value="${sp.ratios[i]}" style="margin:0"><span>%</span></div>`:''}</div>`).join('')+
-    (sp.method==='ratio'?`<div class="hint" style="grid-column:1/-1">비율 합계 ${sp.ratios.reduce((a,b)=>a+(+b||0),0)}% (100이 아니어도 비율대로 나눠요)</div>`:'');
+    ${true?`<div class="row" style="gap:4px"><input type="number" inputmode="numeric" data-rt="${i}" value="${sp.ratios[i]}" style="margin:0"><span>%</span></div>`:''}</div>`).join('')+
+    (true?`<div class="hint" style="grid-column:1/-1">비율 합계 ${sp.ratios.reduce((a,b)=>a+(+b||0),0)}% (100이 아니어도 비율대로 나눠요)</div>`:'');
   const items=sp.items;
   $('#splitCnt').textContent=items.length?`${items.length}품목 · ${items.reduce((a,b)=>a+b.qty,0)}개`:'';
   if(!items.length){$('#splitTable').innerHTML='<tr><td style="text-align:center;padding:24px;color:var(--ink2)">[납품목록 불러오기] 또는 [따로 붙여넣기]로 1일 물량을 넣어주세요</td></tr>';$('#splitToCheck').innerHTML='';$('#splitMsg').value='';save();return}
@@ -723,8 +713,7 @@ function renderSplit(){
   sp.labels.forEach((l,i)=>{L.push('');L.push(`■ ${l} — 총 ${tot[i]}개`);items.forEach((it,k)=>{if(res[k][i]>0)L.push(`· ${it.name} ${res[k][i]}개`)})});
   $('#splitMsg').value=L.join('\n');save();
 }
-$('#nChips').onclick=e=>{const n=+e.target.dataset.n;if(!n)return;S.split.n=n;if(S.split.method==='ratio')S.split.ratios=Array(n).fill(0).map((_,i)=>i<n-1?Math.floor(100/n):100-Math.floor(100/n)*(n-1));renderSplit()};
-$('#methodToggle').onclick=e=>{const m=e.target.dataset.m;if(!m)return;S.split.method=m;if(m==='ratio'){const n=S.split.n;S.split.ratios=Array(n).fill(0).map((_,i)=>i<n-1?Math.floor(100/n):100-Math.floor(100/n)*(n-1))}renderSplit()};
+$('#nChips').onclick=e=>{const n=+e.target.dataset.n;if(!n)return;S.split.n=n;S.split.ratios=Array(n).fill(0).map((_,i)=>i<n-1?Math.floor(100/n):100-Math.floor(100/n)*(n-1));renderSplit()};
 $('#remSel').onchange=e=>{S.split.rem=e.target.value;renderSplit()};
 $('#unitInp').onchange=e=>{S.split.unit=Math.max(1,num(e.target.value)||1);renderSplit()};
 $('#roundsCfg').addEventListener('change',e=>{const l=e.target.dataset.lbl,r=e.target.dataset.rt;
