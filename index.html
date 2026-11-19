@@ -789,7 +789,7 @@ $('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefine
 $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 
 /* ---------- ⑤ 기록 저장/불러오기 ---------- */
-const DEFAULT_API='';
+const DEFAULT_API='https://script.google.com/macros/s/AKfycbzO2fNFspis1LmNSLg9mdWruuQwCM8vdbX09BseS5_jGvG7SvtPJfJjpUiTEi-P0j_N/exec';
 const HKEY='gs25_snackbar_hist_v1',AKEY='gs25_snackbar_api_v1';
 let apiUrl='';try{apiUrl=localStorage.getItem(AKEY)||DEFAULT_API}catch(e){apiUrl=DEFAULT_API}
 let localHist=[];try{localHist=JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){}
