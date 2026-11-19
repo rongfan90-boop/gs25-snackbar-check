@@ -125,6 +125,11 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 @keyframes pulse{50%{transform:scale(1.04)}}
 .resStop{margin-top:18px;background:none;border:0;color:#fff;opacity:.85;text-decoration:underline;font-size:14px;padding:10px}
 #lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
+.savePill{font-size:12px}
+.hrow{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 12px}
+.hrow .nm{flex:1;min-width:0}.hrow b{display:block}.hrow small{color:var(--ink2);font-size:12px}
+.hrow .pct{font-weight:900;font-size:18px}
+nav button{font-size:11px}
 .toast{position:fixed;left:50%;top:calc(70px + var(--safe-t));transform:translateX(-50%);z-index:80;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
 .toast.on{opacity:.95}
 .flash{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:0;transition:opacity .25s}
@@ -144,6 +149,15 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 <main>
 <!-- ① 납품목록 -->
 <section class="tab" id="t-list">
+  <div class="card">
+    <h2>🏪 고객사 · 회차 <span class="cnt savePill" data-pill></span></h2>
+    <div class="grid2">
+      <div><label class="f">고객사(점포명)</label><input type="text" data-meta="store" list="storeList" placeholder="예) GS25 역삼점" autocomplete="off"></div>
+      <div><label class="f">납품일</label><input type="date" data-meta="date"></div>
+    </div>
+    <div style="margin-top:8px"><label class="f">회차</label><input type="text" data-meta="round" placeholder="예) 1회차(오전)"></div>
+    <div class="hint" style="margin-bottom:0">고객사·납품일·회차가 같으면 같은 기록으로 덮어써요. 고객사를 넣으면 검수 내용이 자동 저장돼요.</div>
+  </div>
   <div class="card">
     <h2>📋 납품목록 등록</h2>
     <div class="hint">엑셀에서 <b>바코드 · 상품명 · 수량</b> 열을 복사해 붙여넣거나, 엑셀/CSV 파일을 올려주세요. 열 순서는 자동으로 찾아요.</div>
@@ -225,12 +239,13 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 <!-- ③ 결과·카톡 -->
 <section class="tab" id="t-result">
   <div class="card">
-    <h2>🏪 기본 정보</h2>
+    <h2>🏪 고객사 · 회차 <span class="cnt savePill" data-pill></span></h2>
     <div class="grid2">
-      <div><label class="f">점포명</label><input type="text" id="metaStore" placeholder="예) GS25 역삼점"></div>
-      <div><label class="f">납품일</label><input type="date" id="metaDate"></div>
+      <div><label class="f">고객사(점포명)</label><input type="text" data-meta="store" list="storeList" placeholder="예) GS25 역삼점" autocomplete="off"></div>
+      <div><label class="f">납품일</label><input type="date" data-meta="date"></div>
     </div>
-    <div style="margin-top:8px"><label class="f">회차/비고 (선택)</label><input type="text" id="metaRound" placeholder="예) 1회차(오전)"></div>
+    <div style="margin-top:8px"><label class="f">회차</label><input type="text" data-meta="round" placeholder="예) 1회차(오전)"></div>
+    <div class="hint" style="margin-bottom:0">고객사·납품일·회차가 같으면 같은 기록으로 덮어써요. 고객사를 넣으면 검수 내용이 자동 저장돼요.</div>
   </div>
   <div class="card">
     <h2>💬 카톡 보낼 문구</h2>
@@ -239,6 +254,29 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
     <textarea class="msg" id="msgBox"></textarea>
     <button class="btn pri big w100" id="btnCopyMsg" style="margin-top:10px">📋 문구 복사하기</button>
     <div class="note">복사 후 카카오톡 채팅방에 <b>붙여넣기</b> 하면 돼요. 문구는 위 칸에서 바로 고칠 수도 있어요.</div>
+  </div>
+  <div class="card">
+    <button class="btn teal big w100" id="btnSaveNow">💾 이 회차 기록 저장</button>
+    <div class="hint" style="text-align:center;margin-bottom:0" data-pill></div>
+  </div>
+</section>
+
+<!-- ⑤ 기록 -->
+<section class="tab" id="t-hist">
+  <div class="card">
+    <h2>🗂 회차별 기록</h2>
+    <div class="row" style="gap:6px">
+      <select id="histStore" style="flex:1"><option value="">전체 고객사</option></select>
+      <button class="btn pri" id="btnHistLoad">새로고침</button>
+    </div>
+    <div class="hint" id="histSrc"></div>
+    <div class="list" id="histView"></div>
+  </div>
+  <div class="card">
+    <h2>⚙️ 저장소 연결</h2>
+    <div class="hint">구글시트 Apps Script 웹앱 주소예요. 연결되어 있으면 모든 폰에서 같은 기록을 봐요. 비어 있으면 이 폰에만 저장돼요.</div>
+    <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+    <button class="btn ghost w100" id="btnApiSave" style="margin-top:6px">주소 저장 · 연결 테스트</button>
   </div>
 </section>
 
@@ -294,6 +332,7 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
   <button data-t="t-check"><span class="ic">📷</span>입고검수</button>
   <button data-t="t-result"><span class="ic">💬</span>결과·카톡</button>
   <button data-t="t-split"><span class="ic">🚚</span>배송분할</button>
+  <button data-t="t-hist"><span class="ic">🗂</span>기록</button>
 </nav>
 
 <!-- 수량 입력 시트 -->
@@ -327,6 +366,25 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
   </div>
 </div>
 
+<!-- 기록 상세 -->
+<div class="ov" id="histOv">
+  <div class="sheet">
+    <h3 id="hTitle"></h3>
+    <div class="code" id="hSub"></div>
+    <div class="stat" style="margin-top:12px" id="hStat"></div>
+    <div class="tbwrap" style="max-height:38vh;overflow:auto"><table class="tb" id="hTable"></table></div>
+    <div class="grid2" style="margin-top:10px">
+      <button class="btn pri" id="hResume">이어서 검수하기</button>
+      <button class="btn teal" id="hReuse">납품목록만 다시 쓰기</button>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <button class="btn ghost" id="hCopy">카톡 문구 복사</button>
+      <button class="btn danger" id="hDel">기록 삭제</button>
+    </div>
+    <button class="btn w100" id="hClose" style="margin-top:8px">닫기</button>
+  </div>
+</div>
+<datalist id="storeList"></datalist>
 <!-- 확인 다이얼로그 -->
 <div class="ov" id="cfmOv" style="align-items:center">
   <div class="sheet" style="border-radius:18px;margin:16px;max-width:400px">
@@ -376,7 +434,7 @@ let S={items:[],extras:[],meta:{store:'',date:today(),round:''},mode:'full',filt
   split:{n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},tab:'t-list'};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.split=Object.assign({n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},o.split||{});S.meta=Object.assign({store:'',date:today(),round:''},o.meta||{});}}catch(e){}
 if(S.mode!=='one')S.mode='full';
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.__onSave)window.__onSave()};
 
 /* ---------- feedback ---------- */
 let actx=null;
@@ -454,7 +512,7 @@ function findByCode(code){const k=normCode(code);if(!k)return null;return S.item
 
 /* ---------- tabs ---------- */
 function showTab(t){S.tab=t;$$('.tab').forEach(e=>e.classList.toggle('on',e.id===t));$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  if(t==='t-result')renderMsg();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
+  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
 $$('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 
 function renderHeader(){const t=totals();$('#hdrSub').innerHTML=S.items.length?`${esc(S.meta.store||'')} ${S.items.length}품목<br>입고 ${t.pct}%`:'납품목록을 먼저 등록하세요'}
@@ -662,10 +720,11 @@ function buildMsg(){
   else if(short.length){L.push('');L.push('미입고·부족 품목 확인 부탁드립니다.')}
   return L.join('\n');
 }
-function renderMsg(){$('#metaStore').value=S.meta.store||'';$('#metaDate').value=S.meta.date||today();$('#metaRound').value=S.meta.round||'';
+function renderMsg(){syncMeta();
   $('#optDone').checked=!!S.opt.done;$('#optCode').checked=!!S.opt.code;
   $('#msgBox').value=S.items.length||S.extras.length?buildMsg():'납품목록과 입고검수를 먼저 진행해주세요.';renderHeader()}
-['metaStore','metaDate','metaRound'].forEach(id=>$('#'+id).addEventListener('input',e=>{const k={metaStore:'store',metaDate:'date',metaRound:'round'}[id];S.meta[k]=e.target.value;save();$('#msgBox').value=buildMsg();renderHeader()}));
+function syncMeta(){$$('[data-meta]').forEach(el=>{if(document.activeElement!==el)el.value=S.meta[el.dataset.meta]||(el.dataset.meta==='date'?today():'')})}
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.meta;if(!k)return;S.meta[k]=e.target.value;syncMeta();save();if($('#t-result').classList.contains('on'))$('#msgBox').value=buildMsg();renderHeader()});
 $('#optDone').onchange=e=>{S.opt.done=e.target.checked;save();renderMsg()};
 $('#optCode').onchange=e=>{S.opt.code=e.target.checked;save();renderMsg()};
 async function copyText(txt,ta){
@@ -729,7 +788,90 @@ $('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefine
   S.items=sp.items.map((it,k)=>({id:uid(),code:it.code,name:it.name,qty:res[k],recv:0})).filter(x=>x.qty>0);S.extras=[];S.meta.round=lbl;save();showTab('t-check');toast(`${lbl} 검수 목록으로 바꿨어요`)};
 $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 
+/* ---------- ⑤ 기록 저장/불러오기 ---------- */
+const DEFAULT_API='';
+const HKEY='gs25_snackbar_hist_v1',AKEY='gs25_snackbar_api_v1';
+let apiUrl='';try{apiUrl=localStorage.getItem(AKEY)||DEFAULT_API}catch(e){apiUrl=DEFAULT_API}
+let localHist=[];try{localHist=JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){}
+const saveLocalHist=()=>{try{localStorage.setItem(HKEY,JSON.stringify(localHist.slice(0,150)))}catch(e){}};
+const recId=m=>[m.store||'',m.date||'',m.round||'-'].map(x=>String(x).trim()).join('|');
+function makeRecord(){const t=totals(),m=S.meta;return{id:recId(m),store:(m.store||'').trim(),date:m.date||today(),round:(m.round||'').trim(),
+  items:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv})),extras:S.extras.map(x=>({code:x.code,name:x.name,recv:x.recv})),
+  itemCount:S.items.length,plan:t.plan,recv:t.recvIn,pct:t.pct,left:t.left,msg:buildMsg(),savedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,16)}}
+function setPill(t){$$('[data-pill]').forEach(e=>e.textContent=t)}
+async function api(action,params,body){
+  if(!apiUrl)throw new Error('no-url');
+  let r;
+  if(body)r=await fetch(apiUrl,{method:'POST',body:JSON.stringify(Object.assign({action},body))});
+  else r=await fetch(apiUrl+(apiUrl.includes('?')?'&':'?')+new URLSearchParams(Object.assign({action},params||{})));
+  const j=await r.json();if(!j.ok)throw new Error(j.error||'error');return j.data;
+}
+let saveTimer=null,saving=false,dirty=false;
+window.__onSave=()=>{if(!S.items.length||!(S.meta.store||'').trim())return;dirty=true;setPill('✏️ 저장 대기');clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveRecord(false),3500)};
+async function saveRecord(manual){
+  if(!S.items.length){if(manual)toast('저장할 납품목록이 없어요');return}
+  if(!(S.meta.store||'').trim()){if(manual){toast('고객사(점포명)를 먼저 넣어주세요');showTab('t-list')}return}
+  clearTimeout(saveTimer);const rec=makeRecord();
+  const i=localHist.findIndex(x=>x.id===rec.id);if(i>=0)localHist[i]=rec;else localHist.unshift(rec);saveLocalHist();dirty=false;
+  if(!apiUrl){setPill('📱 이 폰에 저장됨 '+rec.savedAt.slice(11));if(manual)toast('이 폰에 저장했어요 (공유 저장소 미연결)');return}
+  if(saving){dirty=true;return}saving=true;setPill('☁️ 저장 중…');
+  try{await api('save',null,{record:rec});setPill('☁️ 저장됨 '+rec.savedAt.slice(11));if(manual)toast('구글시트에 저장했어요')}
+  catch(e){setPill('⚠️ 시트 저장 실패 · 폰에는 저장됨');if(manual)toast('시트 저장 실패 — 인터넷 확인 후 다시 눌러주세요')}
+  saving=false;if(dirty)window.__onSave();
+}
+$('#btnSaveNow').onclick=()=>saveRecord(true);
+let histCache=[];
+async function loadHist(){
+  const st=$('#histStore').value;$('#apiUrl').value=apiUrl;
+  $('#histView').innerHTML='<div class="empty">불러오는 중…</div>';
+  let rows,src;
+  try{rows=await api('list',st?{store:st}:{});src='☁️ 구글시트 기록';}
+  catch(e){rows=localHist.filter(x=>!st||x.store===st);src=apiUrl?'⚠️ 시트에 연결 못 해서 이 폰에 저장된 기록만 보여요':'📱 이 폰에 저장된 기록 (저장소 미연결)'}
+  histCache=rows;$('#histSrc').textContent=src+` · ${rows.length}건`;
+  const stores=[...new Set((apiUrl&&src.startsWith('☁️')?rows:localHist).map(x=>x.store).concat(localHist.map(x=>x.store)).filter(Boolean))].sort();
+  if(!st){$('#histStore').innerHTML='<option value="">전체 고객사</option>'+stores.map(x=>`<option>${esc(x)}</option>`).join('')}
+  $('#storeList').innerHTML=stores.map(x=>`<option value="${esc(x)}">`).join('');
+  rows.sort((a,b)=>(String(b.date)+b.round).localeCompare(String(a.date)+a.round)||String(b.savedAt).localeCompare(String(a.savedAt)));
+  if(!rows.length){$('#histView').innerHTML='<div class="empty"><span class="e">🗂</span>아직 저장된 기록이 없어요</div>';return}
+  $('#histView').innerHTML=rows.map((r,i)=>`<div class="hrow" data-h="${i}"><div class="nm"><b>${esc(r.store)} · ${esc(r.round||'회차 없음')}</b>
+    <small>${esc(r.date)} · ${r.itemCount}품목 · ${r.recv}/${r.plan}개${+r.left?` · <span style="color:var(--bad)">미입고·부족 ${r.left}</span>`:' · 전량 입고'}</small></div>
+    <div class="pct" style="color:${+r.left?'var(--bad)':'var(--ok)'}">${r.pct}%</div></div>`).join('');
+}
+$('#histStore').onchange=loadHist;$('#btnHistLoad').onclick=loadHist;
+let curRec=null;
+$('#histView').addEventListener('click',async e=>{const row=e.target.closest('[data-h]');if(!row)return;const lite=histCache[+row.dataset.h];
+  let rec=lite.items?lite:null;
+  if(!rec){toast('불러오는 중…');try{rec=await api('get',{id:lite.id})}catch(err){rec=localHist.find(x=>x.id===lite.id)}}
+  if(!rec||!rec.items){toast('기록을 불러오지 못했어요');return}
+  curRec=rec;$('#hTitle').textContent=`${rec.store} · ${rec.round||'회차 없음'}`;$('#hSub').textContent=`${rec.date} · 저장 ${rec.savedAt||''}`;
+  const sh=rec.items.filter(x=>x.recv<x.qty);
+  $('#hStat').innerHTML=`<div class="ok"><b>${rec.items.length-sh.length}</b><span>입고완료</span></div><div class="bad"><b>${sh.length}</b><span>미입고·부족</span></div><div><b>${rec.pct}%</b><span>${rec.recv}/${rec.plan}개</span></div>`;
+  $('#hTable').innerHTML='<thead><tr><th>상품</th><th>납품</th><th>입고</th><th>차이</th></tr></thead><tbody>'+
+    rec.items.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.qty}</td><td>${x.recv}</td><td style="color:${x.recv<x.qty?'var(--bad)':x.recv>x.qty?'#6a3fd6':'var(--ok)'}">${x.recv-x.qty||'✓'}</td></tr>`).join('')+
+    (rec.extras||[]).map(x=>`<tr><td>${esc(x.name)} (목록외)</td><td>-</td><td>${x.recv}</td><td>+${x.recv}</td></tr>`).join('')+'</tbody>';
+  $('#histOv').classList.add('on');
+});
+$('#hClose').onclick=()=>$('#histOv').classList.remove('on');
+$('#hCopy').onclick=()=>{const ta=document.createElement('textarea');ta.value=curRec.msg||'';ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);copyText(ta.value,ta).finally(()=>ta.remove())};
+async function loadRecord(rec,reuse){
+  if(S.items.length&&!(await confirmBox(reuse?'납품목록을 다시 쓸까요?':'이 기록을 불러올까요?','지금 화면의 검수 내용은 바뀌어요.'+((S.meta.store||'').trim()?' (지금 내용은 이미 자동 저장돼 있어요)':''))))return;
+  if((S.meta.store||'').trim()&&S.items.length)await saveRecord(false);
+  S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:reuse?0:x.recv}));
+  S.extras=reuse?[]:(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
+  S.meta={store:rec.store,date:reuse?today():rec.date,round:rec.round};
+  $('#histOv').classList.remove('on');save();showTab(reuse?'t-list':'t-check');toast(reuse?'납품목록을 불러왔어요. 날짜·회차를 확인해주세요':'기록을 불러왔어요')}
+$('#hResume').onclick=()=>loadRecord(curRec,false);
+$('#hReuse').onclick=()=>loadRecord(curRec,true);
+$('#hDel').onclick=async()=>{if(!(await confirmBox('이 기록을 삭제할까요?',esc(curRec.store+' · '+curRec.date+' · '+(curRec.round||'')))))return;
+  localHist=localHist.filter(x=>x.id!==curRec.id);saveLocalHist();
+  if(apiUrl){try{await api('delete',null,{id:curRec.id})}catch(e){toast('시트에서 삭제 실패');return}}
+  $('#histOv').classList.remove('on');toast('삭제했어요');loadHist()};
+$('#btnApiSave').onclick=async()=>{apiUrl=$('#apiUrl').value.trim();try{localStorage.setItem(AKEY,apiUrl)}catch(e){}
+  if(!apiUrl){toast('저장소 연결을 해제했어요 (이 폰에만 저장)');loadHist();return}
+  try{await api('list',{});toast('✅ 구글시트 연결 성공');loadHist()}catch(e){toast('❌ 연결 실패 — 주소와 배포 설정(모든 사용자)을 확인해주세요')}};
+
 /* ---------- init ---------- */
+$('#storeList').innerHTML=[...new Set(localHist.map(x=>x.store).filter(Boolean))].map(x=>`<option value="${esc(x)}">`).join('');setPill(apiUrl?'☁️ 구글시트 연결됨':'📱 이 폰에만 저장');
 showTab(S.items.length?(S.tab||'t-check'):'t-list');
 })();
 </script>
