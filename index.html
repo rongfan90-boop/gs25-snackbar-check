@@ -142,7 +142,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수</div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v3</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -791,7 +791,8 @@ $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 /* ---------- ⑤ 기록 저장/불러오기 ---------- */
 const DEFAULT_API='https://script.google.com/macros/s/AKfycbzO2fNFspis1LmNSLg9mdWruuQwCM8vdbX09BseS5_jGvG7SvtPJfJjpUiTEi-P0j_N/exec';
 const HKEY='gs25_snackbar_hist_v1',AKEY='gs25_snackbar_api_v1';
-let apiUrl='';try{apiUrl=localStorage.getItem(AKEY)||DEFAULT_API}catch(e){apiUrl=DEFAULT_API}
+let apiUrl='';try{apiUrl=localStorage.getItem(AKEY)||''}catch(e){}
+if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(apiUrl))apiUrl=DEFAULT_API;
 let localHist=[];try{localHist=JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){}
 const saveLocalHist=()=>{try{localStorage.setItem(HKEY,JSON.stringify(localHist.slice(0,150)))}catch(e){}};
 const recId=m=>[m.store||'',m.date||'',m.round||'-'].map(x=>String(x).trim()).join('|');
@@ -866,7 +867,7 @@ $('#hDel').onclick=async()=>{if(!(await confirmBox('이 기록을 삭제할까�
   localHist=localHist.filter(x=>x.id!==curRec.id);saveLocalHist();
   if(apiUrl){try{await api('delete',null,{id:curRec.id})}catch(e){toast('시트에서 삭제 실패');return}}
   $('#histOv').classList.remove('on');toast('삭제했어요');loadHist()};
-$('#btnApiSave').onclick=async()=>{apiUrl=$('#apiUrl').value.trim();try{localStorage.setItem(AKEY,apiUrl)}catch(e){}
+$('#btnApiSave').onclick=async()=>{apiUrl=$('#apiUrl').value.trim()||DEFAULT_API;$('#apiUrl').value=apiUrl;try{localStorage.setItem(AKEY,apiUrl)}catch(e){}
   if(!apiUrl){toast('저장소 연결을 해제했어요 (이 폰에만 저장)');loadHist();return}
   try{await api('list',{});toast('✅ 구글시트 연결 성공');loadHist()}catch(e){toast('❌ 연결 실패 — 주소와 배포 설정(모든 사용자)을 확인해주세요')}};
 
