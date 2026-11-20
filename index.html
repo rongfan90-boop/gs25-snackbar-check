@@ -126,6 +126,7 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 .resStop{margin-top:18px;background:none;border:0;color:#fff;opacity:.85;text-decoration:underline;font-size:14px;padding:10px}
 #lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
 .savePill{font-size:12px}
+.it .q small.carry{color:var(--warn);font-weight:700}
 #qtyOv{z-index:66}
 #doneOv{position:fixed;inset:0;z-index:75;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:24px;background:linear-gradient(160deg,#0f8a4c,#14a05a 55%,#00b6b0)}
 #doneOv.on{display:flex;animation:pop .35s ease-out}
@@ -172,7 +173,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v10</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v11</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -635,7 +636,7 @@ function renderCheck(){
   v.innerHTML=arr.map(it=>{const [lbl,cls]=it.extra?['목록외','extra']:ST[it.s];
     return `<div class="it s-${it.s}" data-open="${it.id}" data-extra="${it.extra?1:0}">
     <div class="nm"><b>${esc(it.name)}<span class="tag ${cls}">${lbl}</span></b><small>${it.code?esc(it.code):'바코드 없음'}</small></div>
-    <div class="q"><b>${it.recv}</b><small>${it.extra?'목록외':'/ '+it.qty+'개'}</small></div>
+    <div class="q"><b>${it.recv}</b><small>${it.extra?'목록외':'/ '+it.qty+'개'}</small>${it.carry>0?`<small class="carry">이월 +${it.carry}</small>`:''}</div>
     <div style="font-size:22px;color:var(--ink2);padding:0 2px">›</div></div>`}).join('');
   renderHeader();
 }
@@ -660,7 +661,7 @@ function renderQ(){$('#qDisp').textContent=qVal===''?'0':qVal;$('#qDisp').classL
 function updQInfo(){$('#qPlan').textContent=qExtra?'-':qItem.qty;$('#qRecv').textContent=qItem.recv;$('#qRemain').textContent=qExtra?'-':Math.max(0,qItem.qty-qItem.recv)}
 function openQty(it,extra){
   qItem=it;qExtra=!!extra;qSrc='';qFresh=true;qVal=String(extra?it.recv:(it.recv>0?it.recv:it.qty));
-  $('#qName').textContent=it.name;$('#qCode').textContent=it.code?('바코드 '+it.code):'바코드 없음';
+  $('#qName').textContent=it.name;$('#qCode').textContent=(it.code?('바코드 '+it.code):'바코드 없음')+(it.carry>0?` · 앞 회차 이월 ${it.carry}개 포함`:'');
   $('#qDelExtra').style.display=extra?'':'none';$('#qHead').className='qHead';
   $('#qOk').textContent='확인';$('#qCancel').textContent='취소';
   updQInfo();renderQ();$('#qtyOv').classList.add('on');
@@ -815,8 +816,8 @@ function buildMsg(){
   L.push(`⚠️ 부족 ${part.length}품목 / ${sum(part.map(x=>x.qty-x.recv))}개`);
   if(over.length||S.extras.length)L.push(`➕ 초과·목록외 ${over.length+S.extras.length}품목`);
   L.push(`📦 총 ${t.plan}개 중 ${t.recvIn}개 입고 (${t.pct}%)`);
-  if(none.length){L.push('');L.push('■ 미입고');none.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.qty}개 미입고`))}
-  if(part.length){L.push('');L.push('■ 부족 입고');part.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 납품 ${x.qty} / 입고 ${x.recv} (${x.qty-x.recv}개 부족)`))}
+  if(none.length){L.push('');L.push('■ 미입고');none.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.qty}개 미입고${x.carry>0?` (앞 회차 이월 ${x.carry} 포함)`:''}`))}
+  if(part.length){L.push('');L.push('■ 부족 입고');part.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 납품 ${x.qty} / 입고 ${x.recv} (${x.qty-x.recv}개 부족)${x.carry>0?` · 앞 회차 이월 ${x.carry} 포함`:''}`))}
   if(over.length){L.push('');L.push('■ 초과 입고');over.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 납품 ${x.qty} / 입고 ${x.recv} (+${x.recv-x.qty})`))}
   if(S.extras.length){L.push('');L.push('■ 목록외 입고');S.extras.forEach((x,i)=>L.push(`${i+1}. ${x.name}${x.code?' ('+x.code+')':''} — ${x.recv}개`))}
   if(S.opt.done&&done.length){L.push('');L.push('■ 입고완료');done.filter(x=>x.recv<=x.qty).forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.recv}개`))}
@@ -892,21 +893,27 @@ $('#btnSplitLoad').onclick=()=>{if(!S.items.length){toast('납품목록이 비�
 $('#btnSplitPasteToggle').onclick=()=>{const w=$('#splitPasteWrap');w.style.display=w.style.display==='none'?'':'none'};
 $('#btnSplitParse').onclick=()=>{const rows=parseRows($('#splitPaste').value.split(/\r?\n/).filter(l=>l.trim()).map(cellsFromLine));if(!rows.length){toast('읽을 수 있는 품목이 없어요');return}
   S.split.items=mergeInto([],rows).map(x=>({code:x.code,name:x.name,qty:x.qty}));$('#splitPaste').value='';$('#splitPasteWrap').style.display='none';renderSplit()};
-$('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefined)return;const sp=S.split,lbl=sp.labels[+i];
+$('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefined)return;const sp=S.split,k=+i,lbl=sp.labels[k];
   if(S.meta.round===lbl&&S.items.length){showTab('t-check');toast(`지금 ${lbl} 검수 중이에요`);return}
-  if(!(await confirmBox(`${lbl} 검수로 바꿀까요?`,S.items.length?'지금 하던 검수는 먼저 저장돼요. 이 회차를 전에 했다면 하던 그대로 불러와요.':'')))return;
+  if(!(await confirmBox(`${lbl} 검수로 바꿀까요?`,(S.items.length?'지금 하던 검수는 먼저 저장돼요. 이 회차를 전에 했다면 하던 그대로 불러와요.':'')+(k>0?'<br><br>앞 회차에 덜 들어온 수량은 이 회차로 넘어와요.':''))))return;
   /* 1) 지금 회차 먼저 저장 */
   if(S.items.length&&AUTH&&!AUTH.admin){toast('지금 회차 저장 중…');await flushSave()}
-  /* 2) 이 회차를 전에 저장한 적 있으면 그대로 불러오기 */
-  const meta={store:S.meta.store,date:S.meta.date||today(),round:lbl};
-  const rec=await findSaved(meta);
-  if(rec&&rec.items&&rec.items.length){
-    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0}));
-    S.extras=(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
-    S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} — 하던 검수를 불러왔어요`);return}
-  /* 3) 처음 하는 회차면 분할 수량으로 새로 시작 */
-  const res=sp.items.map(it=>splitQty(it.qty)[+i]);
-  S.items=sp.items.map((it,k)=>({id:uid(),code:it.code,name:it.name,qty:res[k],recv:0,t:Date.now()})).filter(x=>x.qty>0);S.extras=[];S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} 검수를 시작해요`)};
+  const base={store:S.meta.store,date:S.meta.date||today()};
+  /* 2) 앞 회차들에 실제로 들어온 수량 모으기 */
+  const prevRecv=new Map();let prevDone=0;
+  for(let j=0;j<k;j++){const r=await findSaved({...base,round:sp.labels[j]});
+    if(r&&r.items){prevDone++;r.items.forEach(x=>{const key=itemKey(x);prevRecv.set(key,(prevRecv.get(key)||0)+(+x.recv||0))})}}
+  /* 3) 이 회차 납품 수량 = (1회차~이 회차 계획 합) − (앞 회차까지 들어온 합)  → 못 들어온 건 넘어오고, 더 들어온 건 빠짐 */
+  const plan=sp.items.map(it=>{const parts=splitQty(it.qty);let cum=0;for(let j=0;j<=k;j++)cum+=parts[j];
+    const got=prevRecv.get(itemKey(it))||0,need=Math.max(0,cum-got);return{it,mine:parts[k],qty:need,carry:need-parts[k]}});
+  const rec=await findSaved({...base,round:lbl});
+  const old=new Map(((rec&&rec.items)||[]).map(x=>[itemKey(x),x]));
+  S.items=plan.filter(p=>p.qty>0||old.has(itemKey(p.it))).map(p=>{const o=old.get(itemKey(p.it));
+    return{id:uid(),code:p.it.code,name:p.it.name,qty:p.qty,carry:p.carry,recv:o?o.recv:0,t:Date.now()}}).filter(x=>x.qty>0||x.recv>0);
+  S.extras=rec&&rec.extras?rec.extras.map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv,t:x.t||0})):[];
+  S.meta.round=lbl;lastLeft=null;save();showTab('t-check');
+  const cs=S.items.filter(x=>x.carry>0);
+  toast((rec&&rec.items?`${lbl} — 하던 검수를 불러왔어요`:`${lbl} 검수를 시작해요`)+(cs.length?` · 앞 회차 미입고 ${cs.length}품목(${cs.reduce((a,x)=>a+x.carry,0)}개) 포함`:''))};
 $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 
 /* ---------- ⑤ 로그인 · 기록 저장/불러오기 ---------- */
@@ -920,7 +927,7 @@ const myLocal=()=>localHist.filter(x=>AUTH&&!AUTH.admin&&skey(x.shop)===skey(AUT
 const recId=m=>[(m.store||'').trim(),m.date||'',(m.round||'-').trim()].join('|');
 function makeRecord(){const t=totals(),m=S.meta,wk=weekOf(m.date).label,rr=(m.round||'').trim();
   return{id:recId(m),shop:AUTH&&AUTH.store,cust:(m.store||'').trim(),date:m.date||today(),week:wk,roundRaw:rr,round:wk+(rr?' · '+rr:''),
-  items:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0})),extras:S.extras.map(x=>({code:x.code,name:x.name,recv:x.recv,t:x.t||0})),
+  items:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0,carry:x.carry||0})),extras:S.extras.map(x=>({code:x.code,name:x.name,recv:x.recv,t:x.t||0})),
   itemCount:S.items.length,plan:t.plan,recv:t.recvIn,pct:t.pct,left:t.left,msg:buildMsg(),savedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,16)}}
 function setPill(t){$$('[data-pill]').forEach(e=>e.textContent=t)}
 async function api(action,body,auth){
@@ -993,8 +1000,8 @@ function applyRemote(rec){ /* 서버 기록을 합치기: 품목마다 더 최�
   if(!rec||!rec.items)return false;let changed=false;
   const map=new Map(S.items.map(x=>[itemKey(x),x]));
   rec.items.forEach(r=>{const k=itemKey(r),l=map.get(k);
-    if(!l){S.items.push({id:uid(),code:r.code,name:r.name,qty:r.qty,recv:r.recv,t:r.t||0});changed=true}
-    else if((r.t||0)>(l.t||0)){if(l.recv!==r.recv||l.qty!==r.qty)changed=true;l.recv=r.recv;l.qty=r.qty;l.t=r.t;l.name=r.name}});
+    if(!l){S.items.push({id:uid(),code:r.code,name:r.name,qty:r.qty,recv:r.recv,t:r.t||0,carry:r.carry||0});changed=true}
+    else if((r.t||0)>(l.t||0)){if(l.recv!==r.recv||l.qty!==r.qty)changed=true;l.recv=r.recv;l.qty=r.qty;l.t=r.t;l.name=r.name;l.carry=r.carry||0}});
   const em=new Map(S.extras.map(x=>[itemKey(x),x]));
   (rec.extras||[]).forEach(r=>{const k=itemKey(r),l=em.get(k);
     if(!l){S.extras.push({id:uid(),code:r.code,name:r.name,recv:r.recv,t:r.t||0});changed=true}
@@ -1021,7 +1028,7 @@ async function pullToday(){
   try{const rows=(await api('list',{})).filter(r=>r.date===today());if(!rows.length)return;
     rows.sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)));
     const rec=await api('get',{id:rows[0].id});if(!rec||!rec.items||S.items.length)return;
-    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0}));
+    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0,carry:x.carry||0}));
     S.extras=(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv,t:x.t||0}));
     S.meta={store:rec.cust||'',date:rec.date,round:rec.roundRaw||''};lastLeft=null;storeLocal();
     showTab('t-check');toast(`👥 오늘 검수(${rec.round||''}${rec.cust?' · '+rec.cust:''})를 불러왔어요`)}catch(e){}}
@@ -1080,7 +1087,7 @@ $('#hCopy').onclick=()=>{const ta=document.createElement('textarea');ta.value=cu
 async function loadRecord(rec,reuse){
   if(S.items.length&&!(await confirmBox(reuse?'납품목록을 다시 쓸까요?':'이 기록을 불러올까요?','지금 화면의 검수 내용은 바뀌어요. (지금 내용은 자동 저장돼 있어요)')))return;
   if(S.items.length)await saveRecord(false);
-  S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:reuse?0:x.recv,t:reuse?Date.now():(x.t||0)}));
+  S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:reuse?0:x.recv,t:reuse?Date.now():(x.t||0),carry:reuse?0:(x.carry||0)}));
   S.extras=reuse?[]:(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
   S.meta={store:rec.cust||'',date:reuse?today():rec.date,round:reuse?'':(rec.roundRaw||'')};
   $('#histOv').classList.remove('on');save();showTab(reuse?'t-list':'t-check');toast(reuse?'납품목록을 불러왔어요. 납품일을 확인해주세요':'기록을 불러왔어요')}
