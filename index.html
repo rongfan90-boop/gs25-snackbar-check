@@ -126,6 +126,8 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 .resStop{margin-top:18px;background:none;border:0;color:#fff;opacity:.85;text-decoration:underline;font-size:14px;padding:10px}
 #lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
 .savePill{font-size:12px}
+#qtyOv{z-index:66}
+.qHead{display:none;font-size:13px;font-weight:700;color:var(--ok);margin-bottom:4px}.qHead.on{display:block}
 #loginOv{position:fixed;inset:0;z-index:90;background:linear-gradient(160deg,var(--blue) 0%,#0a8fd0 60%,var(--teal) 100%);display:none;align-items:center;justify-content:center;padding:20px}
 #loginOv.on{display:flex}
 .lgBox{background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:380px;box-shadow:0 10px 40px rgba(0,0,0,.18)}
@@ -153,7 +155,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v5</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v6</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -228,8 +230,9 @@ nav button{font-size:11px}
     </div>
     <div class="sec-title" style="margin-top:10px">스캔하면</div>
     <div class="toggle" id="modeToggle">
-      <button data-m="full">찍으면 전량 입고 처리</button>
-      <button data-m="one">찍을 때마다 1개씩 +1</button>
+      <button data-m="qty">수량 입력</button>
+      <button data-m="full">전량 입고</button>
+      <button data-m="one">1개씩 +1</button>
     </div>
   </div>
 
@@ -355,7 +358,7 @@ nav button{font-size:11px}
 <!-- 수량 입력 시트 -->
 <div class="ov" id="qtyOv">
   <div class="sheet">
-    <h3 id="qName"></h3>
+    <div class="qHead" id="qHead"></div><h3 id="qName"></h3>
     <div class="code" id="qCode"></div>
     <div class="qinfo">
       <div><b id="qPlan">0</b><span>납품</span></div>
@@ -471,7 +474,7 @@ const normCode=c=>{let s=String(c||'').replace(/[\s-]/g,'');if(/^\d+$/.test(s))s
 let S={items:[],extras:[],meta:{store:'',date:today(),round:''},mode:'full',filter:'all',opt:{done:true,code:false},
   split:{n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},tab:'t-list'};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.split=Object.assign({n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},o.split||{});S.meta=Object.assign({store:'',date:today(),round:''},o.meta||{});}}catch(e){}
-if(S.mode!=='one')S.mode='full';
+if(S.modeV!==2){S.mode='qty';S.modeV=2}if(!['qty','full','one'].includes(S.mode))S.mode='qty';
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.__onSave)window.__onSave()};
 
 /* ---------- feedback ---------- */
@@ -624,8 +627,17 @@ $('#btnResetRecv').onclick=async()=>{if(await confirmBox('입고수량을 초기
 
 /* qty sheet */
 let qItem=null,qExtra=false,qOp='add',afterSheet=null;
+let qSrc='';
+function openScanQty(it,src){ /* 바코드 찍은 직후 입고수량 입력 */
+  openQty(it,false);qSrc=src;qOp='set';
+  $$('#qOpToggle button').forEach(b=>b.classList.toggle('on',b.dataset.op==='set'));
+  $('#qInput').value=it.recv>0?it.recv:it.qty;
+  $('#qHead').className='qHead on';$('#qHead').textContent='✅ 바코드 확인! 들어온 개수를 입력하세요';
+  $('#qOk').textContent=src==='photo'?'확인 → 다음 상품 찍기':'확인';
+  setTimeout(()=>{try{$('#qInput').focus();$('#qInput').select()}catch(e){}},80);
+}
 function openQty(it,extra,fromScan){
-  qItem=it;qExtra=!!extra;qOp='add';
+  qItem=it;qExtra=!!extra;qOp='add';qSrc='';$('#qHead').className='qHead';$('#qOk').textContent='확인';
   $('#qName').textContent=it.name;$('#qCode').textContent=it.code?('바코드 '+it.code):'바코드 없음';
   $('#qDelExtra').style.display=extra?'':'none';
   updQInfo();
@@ -643,7 +655,12 @@ $('#qPlus').onclick=()=>$('#qInput').value=num($('#qInput').value)+1;
 $('#qAll').onclick=()=>{qOp==='set'?$('#qInput').value=qItem.qty:$('#qInput').value=Math.max(0,qItem.qty-qItem.recv)};
 $('#qZero').onclick=()=>{qOp='set';$$('#qOpToggle button').forEach(b=>b.classList.toggle('on',b.dataset.op==='set'));$('#qInput').value=0};
 $('#qCancel').onclick=closeQty;
-$('#qOk').onclick=()=>{const v=Math.max(0,num($('#qInput').value));if(qOp==='add')qItem.recv+=v;else qItem.recv=v;save();renderCheck();setLast(qItem,true);closeQty()};
+$('#qOk').onclick=()=>{const v=Math.max(0,num($('#qInput').value));if(qOp==='add')qItem.recv+=v;else qItem.recv=v;
+  const it=qItem,src=qSrc;save();renderCheck();setLast(it,true,`입고 ${it.recv} / 납품 ${it.qty}개`);toast(`✅ ${it.name} 입고 ${it.recv}개`);
+  if(src==='photo'&&!photoQueue.length){qItem=null;afterSheet=null;$('#qtyOv').classList.remove('on');
+    if(totals().left===0){showRes('ok','🎉','전 품목 입고완료!','결과·카톡 탭에서 문구를 복사하세요');return}
+    $('#filePhoto').click();return}
+  closeQty()};
 $('#qDelExtra').onclick=()=>{S.extras=S.extras.filter(x=>x!==qItem);save();renderCheck();closeQty()};
 $('#qInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#qOk').click()});
 
@@ -657,6 +674,7 @@ function applyCode(raw){
   const code=String(raw||'').trim();if(!code)return null;
   const it=findByCode(code);
   if(!it)return{ok:false,code,msg:'금번 입고 상품이 아닙니다'};
+  if(S.mode==='qty')return{ok:true,it,code,needQty:true};
   let msg;
   if(S.mode==='one'){it.recv+=1;msg=`+1 → 입고 ${it.recv} / 납품 ${it.qty}개`}
   else if(it.recv>=it.qty){msg=`이미 입고완료 (${it.recv} / ${it.qty}개)`}
@@ -666,8 +684,15 @@ function applyCode(raw){
 function handleCode(raw){ /* 실시간 스캔·직접입력: 창 없이 바로 처리 */
   const r=applyCode(raw);if(!r)return;
   beep(r.ok);flash(r.ok?'#14a05a':'#e5383b');renderCheck();
+  if(r.ok&&r.needQty){setLast(r.it,true,'입고수량 입력 중…');if(liveOn){pauseLive();afterSheet=()=>resumeLive()}openScanQty(r.it,liveOn?'live':'manual');return}
   if(r.ok){setLast(r.it,true,r.msg);toast(`✅ ${r.it.name} · ${r.msg}`)}
   else{setLast(null,false,`❌ 금번 입고 상품이 아닙니다 (${r.code})`);toast('❌ 금번 입고 상품이 아닙니다')}
+}
+let photoQueue=[];
+function nextPhoto(){ /* 사진에서 읽은 '수량 입력' 대상 순서대로 */
+  const it=photoQueue.shift();if(!it)return;
+  afterSheet=()=>{if(photoQueue.length)setTimeout(nextPhoto,120)};
+  openScanQty(it,'photo');
 }
 $('#btnManual').onclick=()=>{const v=$('#manualCode').value;$('#manualCode').value='';if(!S.items.length){toast('납품목록을 먼저 등록해주세요');return}handleCode(v)};
 $('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#btnManual').click()}});
@@ -720,6 +745,9 @@ $('#filePhoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';i
   const codes=await detectPhoto(f);
   if(!codes.length){beep(false);showRes('warn','🔍','바코드를 못 읽었어요','바코드가 가운데에 크게, 흔들리지 않게\n나오도록 다시 찍어주세요');return}
   const rs=codes.map(applyCode).filter(Boolean);renderCheck();
+  if(S.mode==='qty'){const okR=rs.filter(r=>r.ok),bad=rs.filter(r=>!r.ok);
+    if(okR.length){beep(true);hideRes();if(bad.length)toast(`❌ ${bad.length}개는 금번 입고 상품이 아니에요`);photoQueue=okR.map(r=>r.it);nextPhoto();return}
+    beep(false);const t=totals();showRes('bad','❌','금번 입고 상품이 아닙니다','바코드 '+bad.map(r=>r.code).join(', ')+`\n\n전체 ${t.recvIn}/${t.plan}개 · 남은 품목 ${t.left}`);return}
   const okR=rs.filter(r=>r.ok),bad=rs.filter(r=>!r.ok);const t=totals();
   const tail=`\n\n전체 ${t.recvIn}/${t.plan}개 · 남은 품목 ${t.left}`;
   beep(bad.length===0);
