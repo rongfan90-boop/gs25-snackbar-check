@@ -127,6 +127,13 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 #lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
 .savePill{font-size:12px}
 #qtyOv{z-index:66}
+#doneOv{position:fixed;inset:0;z-index:75;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:24px;background:linear-gradient(160deg,#0f8a4c,#14a05a 55%,#00b6b0)}
+#doneOv.on{display:flex;animation:pop .35s ease-out}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.dIc{font-size:92px;line-height:1}.dTitle{font-size:28px;font-weight:900;margin:16px 0 8px;letter-spacing:-.5px}
+.dSub{font-size:16px;opacity:.95}
+.dBtn{margin-top:36px;width:100%;max-width:340px;border:0;border-radius:16px;background:#fff;color:#0f8a4c;font-size:18px;font-weight:900;padding:17px}
+.dClose{margin-top:12px;border:0;background:none;color:#fff;font-size:15px;text-decoration:underline;padding:10px}
 #qtyOv .sheet{padding-top:14px}
 .qDispWrap{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:12px 0 2px}
 .qLbl{font-size:13px;color:var(--ink2);font-weight:500}.qUnit{font-size:16px;color:var(--ink2);font-weight:700}
@@ -165,7 +172,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v7</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v8</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -461,6 +468,13 @@ nav button{font-size:11px}
   <div class="resNext">📸 화면을 누르면 다음 상품 촬영</div>
   <button type="button" class="resStop" id="resStop">그만 찍고 목록 보기</button>
 </label>
+<div id="doneOv">
+  <div class="dIc">✅</div>
+  <div class="dTitle">전 품목 확인되었습니다</div>
+  <div class="dSub" id="doneSub"></div>
+  <button class="dBtn" id="doneKakao">💬 카톡 보낼 문구 보기</button>
+  <button class="dClose" id="doneClose">닫기</button>
+</div>
 <div class="toast" id="toast"></div>
 <div class="flash" id="flash"></div>
 
@@ -596,8 +610,15 @@ $('#btnClearList').onclick=async()=>{if(!S.items.length)return;if(await confirmB
 $('#btnGoCheck').onclick=()=>{if(!S.items.length){toast('납품목록을 먼저 등록해주세요');return}showTab('t-check')};
 
 /* ---------- ② check ---------- */
+let lastLeft=null;
+function checkDone(t){ /* 미입고·부족이 0이 되는 순간 완료 화면 */
+  if(S.items.length&&t.left===0&&lastLeft!==null&&lastLeft>0)showDone(t);
+  lastLeft=S.items.length?t.left:null}
+function showDone(t){hideRes();
+  $('#doneSub').innerHTML=`${S.items.length}품목 · ${t.recvIn}개 입고`+(t.over?`<br>초과·목록외 ${t.over}건 있음`:'');
+  $('#doneOv').classList.add('on');beep(true);setTimeout(()=>beep(true),160);try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch(_){}}
 function renderCheck(){
-  const t=totals();
+  const t=totals();checkDone(t);
   $('#stDone').textContent=t.done;$('#stLeft').textContent=t.left;$('#stOver').textContent=t.over;
   $('#progBar').style.width=Math.min(100,t.pct)+'%';$('#progQty').textContent=`${t.recvIn} / ${t.plan}개 입고`;$('#progPct').textContent=t.pct+'%';
   $$('#modeToggle button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
@@ -662,7 +683,7 @@ function finishSheet(fromBack){
   const src=qSrc;$('#qtyOv').classList.remove('on');qItem=null;if(!fromBack)dropHist();
   if(src==='photo'){afterSheet=null;
     if(photoQueue.length){setTimeout(nextPhoto,120);return}
-    if(S.items.length&&totals().left===0){showRes('ok','🎉','전 품목 입고완료!','결과·카톡 탭에서 문구를 복사하세요');return}
+    if(S.items.length&&totals().left===0)return;
     if(fromBack){showRes('warn','📸','다음 상품 찍기','화면을 누르면 카메라가 열려요');return}
     $('#filePhoto').click();return}
   if(afterSheet){const f=afterSheet;afterSheet=null;f()}
@@ -671,7 +692,6 @@ function closeQty(){finishSheet(false)}
 $('#qCancel').onclick=()=>finishSheet(false);
 $('#qOk').onclick=()=>{const v=Math.max(0,num(qVal||0));const it=qItem;it.recv=v;
   save();renderCheck();setLast(it,true,`입고 ${it.recv} / 납품 ${it.qty}개`);toast(`✅ ${it.name} 입고 ${it.recv}개`);
-  if(qSrc==='live'&&S.items.length&&totals().left===0){$('#lastScan').innerHTML='🎉 <b>전 품목 입고완료!</b> 닫기를 누르고 결과·카톡으로 가세요'}
   finishSheet(false)};
 $('#qDelExtra').onclick=()=>{S.extras=S.extras.filter(x=>x!==qItem);save();renderCheck();finishSheet(false)};
 /* 휴대폰 뒤로가기: 입력창 닫고 카메라로 / 스캐너 닫기 */
@@ -682,6 +702,8 @@ window.addEventListener('popstate',()=>{
 });
 
 /* ---------- scan handling ---------- */
+$('#doneKakao').onclick=async()=>{$('#doneOv').classList.remove('on');if(liveOn)await stopLive();hideRes();showTab('t-result')};
+$('#doneClose').onclick=async()=>{$('#doneOv').classList.remove('on');if(liveOn)await stopLive();hideRes()};
 function scanProg(){const t=totals();$('#scanProg').textContent=`입고 ${t.recvIn}/${t.plan}개`;$('#scanProg2').textContent=`남은 품목 ${t.left}`}
 function setLast(it,ok,text){const el=$('#lastScan');if(!el)return;
   el.className=(ok?'ok':'bad')+' big';
@@ -773,7 +795,6 @@ $('#filePhoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';i
     else showRes('bad','❌','금번 입고 상품이 아닙니다','바코드 '+r.code+tail);}
   else{showRes(bad.length?'bad':'ok',bad.length?'⚠️':'✅',`바코드 ${rs.length}개 인식`,
     okR.map(r=>'✅ '+r.it.name).concat(bad.map(r=>'❌ '+r.code+' 금번 입고 상품 아님')).join('\n')+tail)}
-  if(t.left===0&&S.items.length){setTimeout(()=>showRes('ok','🎉','전 품목 입고완료!','결과·카톡 탭에서 문구를 복사하세요'),900)}
 };
 /* ---------- ③ result ---------- */
 function buildMsg(){
