@@ -173,7 +173,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v11</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v12</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -572,7 +572,7 @@ function findByCode(code){const k=normCode(code);if(!k)return null;return S.item
 
 /* ---------- tabs ---------- */
 function showTab(t){S.tab=t;$$('.tab').forEach(e=>e.classList.toggle('on',e.id===t));$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();if(t==='t-check'&&typeof pullNow==='function')setTimeout(()=>pullNow(true),50);syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
+  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();if(t==='t-check'&&typeof pullNow==='function')setTimeout(async()=>{await pullNow(true);refreshCarry()},50);syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
 $$('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 
 function renderHeader(){const t=totals(),nm=typeof AUTH!=='undefined'&&AUTH?(AUTH.admin?'🔑 관리자':'🏪 '+AUTH.store):'';$('#hdrSub').innerHTML=`<b>${esc(nm)}</b><br>`+(S.items.length?`${S.items.length}품목 · 입고 ${t.pct}%`:'납품목록 미등록')}
@@ -893,8 +893,29 @@ $('#btnSplitLoad').onclick=()=>{if(!S.items.length){toast('납품목록이 비�
 $('#btnSplitPasteToggle').onclick=()=>{const w=$('#splitPasteWrap');w.style.display=w.style.display==='none'?'':'none'};
 $('#btnSplitParse').onclick=()=>{const rows=parseRows($('#splitPaste').value.split(/\r?\n/).filter(l=>l.trim()).map(cellsFromLine));if(!rows.length){toast('읽을 수 있는 품목이 없어요');return}
   S.split.items=mergeInto([],rows).map(x=>({code:x.code,name:x.name,qty:x.qty}));$('#splitPaste').value='';$('#splitPasteWrap').style.display='none';renderSplit()};
+/* 지금 회차(2회차 이상)의 이월 수량을 앞 회차 기록으로 다시 계산 — 어떤 경로로 들어와도 맞춰짐 */
+let carryBusy=false;
+async function refreshCarry(){
+  const sp=S.split,k=sp.labels.indexOf(S.meta.round);
+  if(carryBusy||k<=0||!sp.items||!sp.items.length||!AUTH||AUTH.admin)return 0;
+  carryBusy=true;
+  try{
+    const base={store:S.meta.store,date:S.meta.date||today()},prevRecv=new Map();
+    for(let j=0;j<k;j++){const r=await findSaved({...base,round:sp.labels[j]});
+      if(r&&r.items)r.items.forEach(x=>{const key=itemKey(x);prevRecv.set(key,(prevRecv.get(key)||0)+(+x.recv||0))})}
+    if(S.meta.round!==sp.labels[k])return 0; /* 그 사이 회차가 바뀜 */
+    const map=new Map(S.items.map(x=>[itemKey(x),x]));let n=0,added=0;
+    sp.items.forEach(it=>{const parts=splitQty(it.qty);let cum=0;for(let j=0;j<=k;j++)cum+=parts[j];
+      const need=Math.max(0,cum-(prevRecv.get(itemKey(it))||0)),carry=need-parts[k],l=map.get(itemKey(it));
+      if(l){if(l.qty!==need||(l.carry||0)!==carry){l.qty=need;l.carry=carry;l.t=Date.now();n++}}
+      else if(need>0){S.items.push({id:uid(),code:it.code,name:it.name,qty:need,carry,recv:0,t:Date.now()});n++;added++}});
+    if(n){lastLeft=null;save();refreshViews();const cs=S.items.filter(x=>x.carry>0);
+      toast(`앞 회차 기록으로 수량을 다시 맞췄어요`+(cs.length?` · 이월 ${cs.length}품목(${cs.reduce((a,x)=>a+x.carry,0)}개)`:''))}
+    return n;
+  }catch(e){return 0}finally{carryBusy=false}
+}
 $('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefined)return;const sp=S.split,k=+i,lbl=sp.labels[k];
-  if(S.meta.round===lbl&&S.items.length){showTab('t-check');toast(`지금 ${lbl} 검수 중이에요`);return}
+  if(S.meta.round===lbl&&S.items.length){showTab('t-check');const n=await refreshCarry();if(!n)toast(`지금 ${lbl} 검수 중이에요`);return}
   if(!(await confirmBox(`${lbl} 검수로 바꿀까요?`,(S.items.length?'지금 하던 검수는 먼저 저장돼요. 이 회차를 전에 했다면 하던 그대로 불러와요.':'')+(k>0?'<br><br>앞 회차에 덜 들어온 수량은 이 회차로 넘어와요.':''))))return;
   /* 1) 지금 회차 먼저 저장 */
   if(S.items.length&&AUTH&&!AUTH.admin){toast('지금 회차 저장 중…');await flushSave()}
