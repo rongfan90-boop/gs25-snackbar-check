@@ -127,6 +127,16 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 #lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
 .savePill{font-size:12px}
 #qtyOv{z-index:66}
+#qtyOv .sheet{padding-top:14px}
+.qDispWrap{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:12px 0 2px}
+.qLbl{font-size:13px;color:var(--ink2);font-weight:500}.qUnit{font-size:16px;color:var(--ink2);font-weight:700}
+#qDisp{font-size:44px;font-weight:900;min-width:110px;text-align:center;border-bottom:3px solid var(--blue);line-height:1.15;font-variant-numeric:tabular-nums}
+#qDisp.fresh{color:var(--blue)}
+.qDiff{text-align:center;font-size:13.5px;font-weight:700;min-height:20px;margin-bottom:8px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pad button{height:54px;border:1px solid var(--line);background:#fff;border-radius:13px;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.pad button:active{background:var(--blue-l)}
+.pad button.fn{background:var(--gray-l);font-size:17px}
 .qHead{display:none;font-size:13px;font-weight:700;color:var(--ok);margin-bottom:4px}.qHead.on{display:block}
 #loginOv{position:fixed;inset:0;z-index:90;background:linear-gradient(160deg,var(--blue) 0%,#0a8fd0 60%,var(--teal) 100%);display:none;align-items:center;justify-content:center;padding:20px}
 #loginOv.on{display:flex}
@@ -155,7 +165,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v6</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v7</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -232,7 +242,6 @@ nav button{font-size:11px}
     <div class="toggle" id="modeToggle">
       <button data-m="qty">수량 입력</button>
       <button data-m="full">전량 입고</button>
-      <button data-m="one">1개씩 +1</button>
     </div>
   </div>
 
@@ -365,20 +374,15 @@ nav button{font-size:11px}
       <div><b id="qRecv">0</b><span>현재 입고</span></div>
       <div><b id="qRemain">0</b><span>남은 수량</span></div>
     </div>
-    <div class="toggle" id="qOpToggle" style="margin-top:14px">
-      <button data-op="add">이번에 들어온 수량 더하기</button>
-      <button data-op="set">입고 총수량으로 고치기</button>
+    <div class="qDispWrap"><span class="qLbl">입고 수량</span><div id="qDisp">0</div><span class="qUnit">개</span></div>
+    <div class="qDiff" id="qDiff"></div>
+    <div class="pad" id="qPad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="all" class="fn">전량</button><button data-k="0">0</button><button data-k="del" class="fn">⌫</button>
     </div>
-    <div class="qtybox">
-      <button id="qMinus">−</button>
-      <input type="number" id="qInput" inputmode="numeric" min="0">
-      <button id="qPlus">+</button>
-    </div>
-    <div class="grid2">
-      <button class="btn ghost" id="qAll">남은 수량 전부</button>
-      <button class="btn ghost" id="qZero">0 (미입고)</button>
-    </div>
-    <div class="grid2" style="margin-top:8px">
+    <div class="grid2" style="margin-top:10px">
       <button class="btn" id="qCancel">취소</button>
       <button class="btn pri" id="qOk">확인</button>
     </div>
@@ -474,7 +478,7 @@ const normCode=c=>{let s=String(c||'').replace(/[\s-]/g,'');if(/^\d+$/.test(s))s
 let S={items:[],extras:[],meta:{store:'',date:today(),round:''},mode:'full',filter:'all',opt:{done:true,code:false},
   split:{n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},tab:'t-list'};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.split=Object.assign({n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},o.split||{});S.meta=Object.assign({store:'',date:today(),round:''},o.meta||{});}}catch(e){}
-if(S.modeV!==2){S.mode='qty';S.modeV=2}if(!['qty','full','one'].includes(S.mode))S.mode='qty';
+if(S.modeV!==2){S.mode='qty';S.modeV=2}if(!['qty','full'].includes(S.mode))S.mode='qty';
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.__onSave)window.__onSave()};
 
 /* ---------- feedback ---------- */
@@ -611,7 +615,7 @@ function renderCheck(){
     return `<div class="it s-${it.s}" data-open="${it.id}" data-extra="${it.extra?1:0}">
     <div class="nm"><b>${esc(it.name)}<span class="tag ${cls}">${lbl}</span></b><small>${it.code?esc(it.code):'바코드 없음'}</small></div>
     <div class="q"><b>${it.recv}</b><small>${it.extra?'목록외':'/ '+it.qty+'개'}</small></div>
-    <div class="step"><button data-dec="${it.id}">−</button><button data-inc="${it.id}">+</button></div></div>`}).join('');
+    <div style="font-size:22px;color:var(--ink2);padding:0 2px">›</div></div>`}).join('');
   renderHeader();
 }
 $('#searchBox').oninput=renderCheck;
@@ -625,44 +629,57 @@ $('#checkView').addEventListener('click',e=>{
 });
 $('#btnResetRecv').onclick=async()=>{if(await confirmBox('입고수량을 초기화할까요?','납품목록은 그대로 두고 입고 기록과 목록외 품목만 지워요.')){S.items.forEach(x=>x.recv=0);S.extras=[];save();renderCheck()}};
 
-/* qty sheet */
-let qItem=null,qExtra=false,qOp='add',afterSheet=null;
-let qSrc='';
-function openScanQty(it,src){ /* 바코드 찍은 직후 입고수량 입력 */
-  openQty(it,false);qSrc=src;qOp='set';
-  $$('#qOpToggle button').forEach(b=>b.classList.toggle('on',b.dataset.op==='set'));
-  $('#qInput').value=it.recv>0?it.recv:it.qty;
-  $('#qHead').className='qHead on';$('#qHead').textContent='✅ 바코드 확인! 들어온 개수를 입력하세요';
-  $('#qOk').textContent=src==='photo'?'확인 → 다음 상품 찍기':'확인';
-  setTimeout(()=>{try{$('#qInput').focus();$('#qInput').select()}catch(e){}},80);
-}
-function openQty(it,extra,fromScan){
-  qItem=it;qExtra=!!extra;qOp='add';qSrc='';$('#qHead').className='qHead';$('#qOk').textContent='확인';
-  $('#qName').textContent=it.name;$('#qCode').textContent=it.code?('바코드 '+it.code):'바코드 없음';
-  $('#qDelExtra').style.display=extra?'':'none';
-  updQInfo();
-  const remain=Math.max(0,it.qty-it.recv);
-  $('#qInput').value=extra?1:(remain>0?remain:1);
-  $$('#qOpToggle button').forEach(b=>b.classList.toggle('on',b.dataset.op===qOp));
-  $('#qtyOv').classList.add('on');
-}
+/* qty sheet (숫자판) */
+let qItem=null,qExtra=false,qSrc='',qVal='0',qFresh=true,afterSheet=null,qHist=false,ignorePop=false;
+function renderQ(){$('#qDisp').textContent=qVal===''?'0':qVal;$('#qDisp').classList.toggle('fresh',qFresh);
+  if(qExtra){$('#qDiff').textContent='';return}
+  const v=num(qVal||0),d=v-qItem.qty,el=$('#qDiff');
+  el.textContent=d===0?'✅ 납품 수량과 같아요':d<0?`⚠️ ${-d}개 부족`:`➕ ${d}개 초과`;
+  el.style.color=d===0?'var(--ok)':d<0?'var(--bad)':'#6a3fd6'}
 function updQInfo(){$('#qPlan').textContent=qExtra?'-':qItem.qty;$('#qRecv').textContent=qItem.recv;$('#qRemain').textContent=qExtra?'-':Math.max(0,qItem.qty-qItem.recv)}
-function closeQty(){$('#qtyOv').classList.remove('on');qItem=null;if(afterSheet){const f=afterSheet;afterSheet=null;f()}}
-$('#qOpToggle').onclick=e=>{const op=e.target.dataset.op;if(!op)return;qOp=op;$$('#qOpToggle button').forEach(b=>b.classList.toggle('on',b.dataset.op===qOp));
-  $('#qInput').value=op==='set'?qItem.recv:(qExtra?1:Math.max(1,qItem.qty-qItem.recv))};
-$('#qMinus').onclick=()=>$('#qInput').value=Math.max(0,num($('#qInput').value)-1);
-$('#qPlus').onclick=()=>$('#qInput').value=num($('#qInput').value)+1;
-$('#qAll').onclick=()=>{qOp==='set'?$('#qInput').value=qItem.qty:$('#qInput').value=Math.max(0,qItem.qty-qItem.recv)};
-$('#qZero').onclick=()=>{qOp='set';$$('#qOpToggle button').forEach(b=>b.classList.toggle('on',b.dataset.op==='set'));$('#qInput').value=0};
-$('#qCancel').onclick=closeQty;
-$('#qOk').onclick=()=>{const v=Math.max(0,num($('#qInput').value));if(qOp==='add')qItem.recv+=v;else qItem.recv=v;
-  const it=qItem,src=qSrc;save();renderCheck();setLast(it,true,`입고 ${it.recv} / 납품 ${it.qty}개`);toast(`✅ ${it.name} 입고 ${it.recv}개`);
-  if(src==='photo'&&!photoQueue.length){qItem=null;afterSheet=null;$('#qtyOv').classList.remove('on');
-    if(totals().left===0){showRes('ok','🎉','전 품목 입고완료!','결과·카톡 탭에서 문구를 복사하세요');return}
+function openQty(it,extra){
+  qItem=it;qExtra=!!extra;qSrc='';qFresh=true;qVal=String(extra?it.recv:(it.recv>0?it.recv:it.qty));
+  $('#qName').textContent=it.name;$('#qCode').textContent=it.code?('바코드 '+it.code):'바코드 없음';
+  $('#qDelExtra').style.display=extra?'':'none';$('#qHead').className='qHead';
+  $('#qOk').textContent='확인';$('#qCancel').textContent='취소';
+  updQInfo();renderQ();$('#qtyOv').classList.add('on');
+  if(!qHist){try{history.pushState({q:1},'');qHist=true}catch(e){}}
+}
+function openScanQty(it,src){ /* 바코드 찍은 직후 입고수량 입력 */
+  openQty(it,false);qSrc=src;
+  $('#qHead').className='qHead on';$('#qHead').textContent='✅ 바코드 확인! 들어온 개수를 숫자로 눌러주세요';
+  if(src==='live'||src==='photo'){$('#qOk').textContent='확인 → 다음 상품';$('#qCancel').textContent='취소 → 카메라로'}
+}
+$('#qPad').onclick=e=>{const k=e.target.dataset.k;if(!k||!qItem)return;
+  if(k==='del'){qFresh=false;qVal=qVal.slice(0,-1)}
+  else if(k==='all'){qVal=String(qItem.qty);qFresh=true}
+  else{if(qFresh){qVal='';qFresh=false}if(qVal.length<5)qVal=(qVal==='0'?'':qVal)+k}
+  try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}
+  renderQ()};
+function dropHist(){if(qHist){qHist=false;ignorePop=true;try{history.back()}catch(e){ignorePop=false}}}
+/* 시트 닫고 다음 단계로 (카메라 복귀) */
+function finishSheet(fromBack){
+  const src=qSrc;$('#qtyOv').classList.remove('on');qItem=null;if(!fromBack)dropHist();
+  if(src==='photo'){afterSheet=null;
+    if(photoQueue.length){setTimeout(nextPhoto,120);return}
+    if(S.items.length&&totals().left===0){showRes('ok','🎉','전 품목 입고완료!','결과·카톡 탭에서 문구를 복사하세요');return}
+    if(fromBack){showRes('warn','📸','다음 상품 찍기','화면을 누르면 카메라가 열려요');return}
     $('#filePhoto').click();return}
-  closeQty()};
-$('#qDelExtra').onclick=()=>{S.extras=S.extras.filter(x=>x!==qItem);save();renderCheck();closeQty()};
-$('#qInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('#qOk').click()});
+  if(afterSheet){const f=afterSheet;afterSheet=null;f()}
+}
+function closeQty(){finishSheet(false)}
+$('#qCancel').onclick=()=>finishSheet(false);
+$('#qOk').onclick=()=>{const v=Math.max(0,num(qVal||0));const it=qItem;it.recv=v;
+  save();renderCheck();setLast(it,true,`입고 ${it.recv} / 납품 ${it.qty}개`);toast(`✅ ${it.name} 입고 ${it.recv}개`);
+  if(qSrc==='live'&&S.items.length&&totals().left===0){$('#lastScan').innerHTML='🎉 <b>전 품목 입고완료!</b> 닫기를 누르고 결과·카톡으로 가세요'}
+  finishSheet(false)};
+$('#qDelExtra').onclick=()=>{S.extras=S.extras.filter(x=>x!==qItem);save();renderCheck();finishSheet(false)};
+/* 휴대폰 뒤로가기: 입력창 닫고 카메라로 / 스캐너 닫기 */
+window.addEventListener('popstate',()=>{
+  if(ignorePop){ignorePop=false;return}
+  if($('#qtyOv').classList.contains('on')){qHist=false;finishSheet(true);return}
+  if(typeof liveOn!=='undefined'&&liveOn){scanHist=false;stopLive()}
+});
 
 /* ---------- scan handling ---------- */
 function scanProg(){const t=totals();$('#scanProg').textContent=`입고 ${t.recvIn}/${t.plan}개`;$('#scanProg2').textContent=`남은 품목 ${t.left}`}
@@ -698,7 +715,7 @@ $('#btnManual').onclick=()=>{const v=$('#manualCode').value;$('#manualCode').val
 $('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#btnManual').click()}});
 
 /* live camera */
-let live=null,liveOn=false,lastCode='',lastAt=0,paused=false;
+let live=null,liveOn=false,lastCode='',lastAt=0,paused=false,scanHist=false;
 const fmts=()=>{try{const F=Html5QrcodeSupportedFormats;return[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF,F.QR_CODE]}catch(e){return undefined}};
 function pauseLive(){if(liveOn&&live&&!paused){try{live.pause(true);paused=true}catch(e){}}}
 function resumeLive(){if(liveOn&&live&&paused){try{live.resume();paused=false}catch(e){}}}
@@ -714,11 +731,11 @@ $('#btnLive').onclick=async()=>{
     await live.start({facingMode:'environment'},{fps:12,qrbox:{width:w,height:Math.round(w*.5)},aspectRatio:window.innerHeight/window.innerWidth},
       txt=>{const now=Date.now();if(txt===lastCode&&now-lastAt<1800)return;lastCode=txt;lastAt=now;handleCode(txt)},()=>{});
     scanProg();
-    liveOn=true;paused=false;
+    liveOn=true;paused=false;try{history.pushState({scan:1},'');scanHist=true}catch(e){}
   }catch(err){stopLive();cameraFail()}
 };
 function cameraFail(){$('#scanOv').classList.remove('on');confirmBox('실시간 카메라를 쓸 수 없어요','이 화면(또는 브라우저)에서 카메라 권한이 막혀 있어요.<br><br>대신 <b>📸 사진으로 찍기</b>를 누르면 폰 카메라로 바코드를 찍어 인식할 수 있어요. 바로 열까요?').then(y=>{if(y)$('#filePhoto').click()})}
-async function stopLive(){liveOn=false;paused=false;try{if(live){await live.stop().catch(()=>{});live.clear()}}catch(e){}live=null;$('#scanOv').classList.remove('on');renderCheck()}
+async function stopLive(){if(scanHist){scanHist=false;ignorePop=true;try{history.back()}catch(e){ignorePop=false}}liveOn=false;paused=false;try{if(live){await live.stop().catch(()=>{});live.clear()}}catch(e){}live=null;$('#scanOv').classList.remove('on');renderCheck()}
 $('#scanClose').onclick=stopLive;
 
 /* photo scan */
