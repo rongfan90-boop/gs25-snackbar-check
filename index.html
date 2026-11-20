@@ -280,7 +280,7 @@ nav button{font-size:11px}
   <div class="card">
     <h2>💬 카톡 보낼 문구</h2>
     <label class="chk"><input type="checkbox" id="optDone" checked> 입고완료 품목도 목록으로 넣기</label>
-    <label class="chk"><input type="checkbox" id="optCode"> 바코드 뒷자리 같이 표시</label>
+    <label class="chk"><input type="checkbox" id="optCode"> 바코드 뒷자리 6자리 같이 표시</label>
     <textarea class="msg" id="msgBox"></textarea>
     <button class="btn pri big w100" id="btnCopyMsg" style="margin-top:10px">📋 문구 복사하기</button>
     <div class="note">복사 후 카카오톡 채팅방에 <b>붙여넣기</b> 하면 돼요. 문구는 위 칸에서 바로 고칠 수도 있어요.</div>
@@ -799,7 +799,7 @@ $('#filePhoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';i
 /* ---------- ③ result ---------- */
 function buildMsg(){
   const t=totals(),m=S.meta,cd=S.opt.code;
-  const tail=c=>cd&&c?` (${String(c).slice(-4)})`:'';
+  const tail=c=>cd&&c?` (${String(c).slice(-6)})`:'';
   const L=[];
   L.push('[GS25 스낵바 입고 확인]');
   if(typeof AUTH!=='undefined'&&AUTH&&!AUTH.admin)L.push('🏪 점포: '+AUTH.store);if(m.store)L.push('📦 고객사: '+m.store);
