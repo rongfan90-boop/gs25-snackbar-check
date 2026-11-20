@@ -172,7 +172,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v8</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v9</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -893,9 +893,20 @@ $('#btnSplitPasteToggle').onclick=()=>{const w=$('#splitPasteWrap');w.style.disp
 $('#btnSplitParse').onclick=()=>{const rows=parseRows($('#splitPaste').value.split(/\r?\n/).filter(l=>l.trim()).map(cellsFromLine));if(!rows.length){toast('읽을 수 있는 품목이 없어요');return}
   S.split.items=mergeInto([],rows).map(x=>({code:x.code,name:x.name,qty:x.qty}));$('#splitPaste').value='';$('#splitPasteWrap').style.display='none';renderSplit()};
 $('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefined)return;const sp=S.split,lbl=sp.labels[+i];
-  if(!(await confirmBox(`${lbl} 수량으로 검수할까요?`,'입고검수 목록의 납품 수량이 이 회차 수량으로 바뀌고, 입고 기록은 0부터 다시 시작해요.')))return;
+  if(S.meta.round===lbl&&S.items.length){showTab('t-check');toast(`지금 ${lbl} 검수 중이에요`);return}
+  if(!(await confirmBox(`${lbl} 검수로 바꿀까요?`,S.items.length?'지금 하던 검수는 먼저 저장돼요. 이 회차를 전에 했다면 하던 그대로 불러와요.':'')))return;
+  /* 1) 지금 회차 먼저 저장 */
+  if(S.items.length&&AUTH&&!AUTH.admin){toast('지금 회차 저장 중…');await flushSave()}
+  /* 2) 이 회차를 전에 저장한 적 있으면 그대로 불러오기 */
+  const meta={store:S.meta.store,date:S.meta.date||today(),round:lbl};
+  const rec=await findSaved(meta);
+  if(rec&&rec.items&&rec.items.length){
+    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv}));
+    S.extras=(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
+    S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} — 하던 검수를 불러왔어요`);return}
+  /* 3) 처음 하는 회차면 분할 수량으로 새로 시작 */
   const res=sp.items.map(it=>splitQty(it.qty)[+i]);
-  S.items=sp.items.map((it,k)=>({id:uid(),code:it.code,name:it.name,qty:res[k],recv:0})).filter(x=>x.qty>0);S.extras=[];S.meta.round=lbl;save();showTab('t-check');toast(`${lbl} 검수 목록으로 바꿨어요`)};
+  S.items=sp.items.map((it,k)=>({id:uid(),code:it.code,name:it.name,qty:res[k],recv:0})).filter(x=>x.qty>0);S.extras=[];S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} 검수를 시작해요`)};
 $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 
 /* ---------- ⑤ 로그인 · 기록 저장/불러오기 ---------- */
@@ -973,6 +984,14 @@ async function saveRecord(manual){
   saving=false;if(dirty)window.__onSave();
 }
 $('#btnSaveNow').onclick=()=>saveRecord(true);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function flushSave(){clearTimeout(saveTimer);for(let k=0;k<50&&saving;k++)await sleep(100);await saveRecord(false);for(let k=0;k<50&&saving;k++)await sleep(100)}
+async function findSaved(meta){ /* 같은 날짜·고객사·회차로 저장된 기록 찾기 (서버 → 이 폰) */
+  const cid=recId(meta);
+  if(AUTH&&!AUTH.admin){try{const rows=await api('list',{});const hit=rows.find(r=>String(r.id).split('|').slice(1).join('|')===cid);
+      if(hit){const full=await api('get',{id:hit.id});if(full&&full.items)return full}}catch(e){}}
+  return localHist.find(x=>x.id===cid&&AUTH&&skey(x.shop)===skey(AUTH.store))||null;
+}
 /* history */
 let histCache=[],histFilterVal='';
 async function loadShops(){if(!AUTH||!AUTH.admin)return;
