@@ -68,59 +68,64 @@ body{margin:0;background:#eef2f6;font-family:'Noto Sans KR',-apple-system,sans-s
       <b>rongfan90-boop.github.io/<br>gs25-snackbar-check</b></div>
   </div>
 
-  <p class="intro">물건이 오면 <b>바코드를 찍기만</b> 하면 돼요. 다 들어왔는지, 빠진 게 있는지 휴대폰이 알아서 세어 줘요. 👍</p>
+  <p class="intro">순서는 <b>① 납품목록 → ② 점포입고 → ③ 고객사납품 → ④ 카톡</b>. 화면 아래 버튼도 이 순서예요. 👍</p>
 
   <div class="steps">
     <div class="st">
-      <h2><span class="no">1</span>로그인하기</h2>
+      <h2><span class="no">0</span>로그인하기</h2>
       <ul>
-        <li><b>처음</b>이면 <span class="btn b-gray">처음이에요 (점포 등록)</span> 누르기</li>
-        <li>우리 <b>점포 이름</b>을 쓰고, <b>비밀번호 숫자 4~6자리</b>를 정해요<br>(확인 칸에 한 번 더!)</li>
-        <li>다음부터는 점포 이름 + 비밀번호로 <span class="btn b-blue">로그인</span></li>
+        <li><b>처음</b>이면 <span class="btn b-gray">처음이에요 (점포 등록)</span></li>
+        <li>점포 이름 + <b>비밀번호 숫자 4~6자리</b> 정하기</li>
+        <li>다음부터는 <span class="btn b-blue">로그인</span>만</li>
       </ul>
       <div class="tip">🔒 비밀번호는 꼭 메모해 두세요!</div>
     </div>
 
     <div class="st">
-      <h2><span class="no">2</span>납품목록 넣기</h2>
+      <h2><span class="no">1</span>납품목록 넣기</h2>
       <ul>
-        <li><span class="tab">📋 납품목록</span> 화면에서 <b>납품일</b>이 오늘인지 보기</li>
-        <li>엑셀에서 <b>바코드 · 상품명 · 수량</b>을 복사해서 큰 칸에 붙여넣기</li>
+        <li><span class="tab">①납품목록</span>에서 <b>고객사 · 납품일</b> 확인</li>
+        <li>엑셀에서 <b>바코드 · 상품명 · 수량</b> 복사 → 큰 칸에 붙여넣기</li>
         <li><span class="btn b-blue">붙여넣기 반영</span> 누르면 끝!</li>
       </ul>
-      <div class="tip">💡 지난번이랑 같으면 <span class="tab">🗂 기록</span> → 지난 기록 → <span class="btn b-teal">납품목록만 다시 쓰기</span></div>
     </div>
 
     <div class="st wide">
-      <h2><span class="no">3</span>바코드 찍기 📷</h2>
+      <h2><span class="no">2</span>점포 입고검수 🏪 <small style="font-size:13px;font-weight:500;color:var(--ink2)">물건이 점포에 들어왔을 때</small></h2>
       <ol>
-        <li><span class="tab">📷 입고검수</span> 화면에서 <span class="btn b-blue">📷 바코드 스캔</span> 누르기 → 카메라 <b>"허용"</b> 누르기</li>
-        <li>상품 바코드를 <b>네모 칸 안에</b> 비추면 "삑!" 하고 <b>입고수량 입력창</b>이 떠요 → 들어온 개수 확인 후 <span class="btn b-blue">확인</span></li>
-        <li>카메라가 안 켜지면 <span class="btn b-teal">📸 사진으로 찍기</span>를 눌러 바코드 사진을 찍어도 돼요</li>
+        <li><span class="tab">②점포입고</span> → <span class="btn b-blue">📷 바코드 스캔</span> → 카메라 <b>"허용"</b></li>
+        <li>바코드를 네모 칸에 비추면 "삑!" → <b>숫자판</b>에 들어온 개수 누르고 <span class="btn b-blue">확인</span> → 다음 상품</li>
       </ol>
       <div class="color">
-        <div class="g"><b>✅ 숫자판이 뜨면</b>이번 상품이 맞아요. 개수를 누르고 확인 → 카메라로 돌아가요!</div>
-        <div class="r"><b>❌ 빨간색이 나오면</b>"금번 입고 상품이 아닙니다" → 이번 물건이 아니니 따로 두세요</div>
+        <div class="g"><b>✅ 숫자판이 뜨면</b>이번 상품이 맞아요. 개수 넣고 확인!</div>
+        <div class="r"><b>❌ 빨간색이 나오면</b>이번 상품이 아니에요. 따로 두세요</div>
       </div>
-      <div class="tip">✏️ 입력창에는 <b>납품 수량이 미리 적혀</b> 있어요. 다 왔으면 그냥 확인, 덜 왔으면 <b>숫자만 고쳐요</b>. 나중에 고칠 땐 목록에서 상품을 눌러요.</div>
+    </div>
+
+    <div class="st wide">
+      <h2><span class="no">3</span>고객사 납품검수 🚚 <small style="font-size:13px;font-weight:500;color:var(--ink2)">고객사에 가져갈 때</small></h2>
+      <ol>
+        <li><span class="tab">③고객사납품</span> → <b>처음 한 번만</b> 납품 횟수(예: 2회)와 회차별 % 정하기 → <span class="btn b-blue">✅ 1회차 납품검수 시작</span></li>
+        <li>가져갈 상품을 찍고 개수 넣기 (점포 입고 때와 똑같아요)</li>
+        <li>다음 납품 때는 위의 <span class="btn b-gray">2회차</span> 버튼을 누르고 찍기</li>
+      </ol>
+      <div class="tip">🔁 1회차에 <b>못 가져간 수량은 2회차에 자동으로 더해져요</b> (목록에 "이월 +50"처럼 표시)</div>
     </div>
 
     <div class="st">
       <h2><span class="no">4</span>카톡 보내기</h2>
       <ul>
-        <li><span class="tab">💬 결과·카톡</span> 화면으로 가기</li>
-        <li><span class="btn b-blue">📋 문구 복사하기</span> 누르기</li>
-        <li><span class="kakao">카카오톡</span> 채팅방에 <b>붙여넣기</b> → 보내기</li>
+        <li><span class="tab">④결과·카톡</span>에서 보낼 결과 고르기<br><span class="btn b-gray">🏪 점포 입고</span> 또는 <span class="btn b-gray">🚚 1회차 (고객사용)</span></li>
+        <li><span class="btn b-blue">📋 문구 복사하기</span> → <span class="kakao">카카오톡</span>에 붙여넣기</li>
       </ul>
-      <div class="tip">빠진 상품 이름과 개수가 저절로 정리돼요 ✨</div>
     </div>
 
     <div class="st">
       <h2><span class="no">5</span>저장은 알아서! 💾</h2>
       <ul>
-        <li>찍는 동안 <b>자동으로 저장</b>돼요. 따로 안 눌러도 OK</li>
-        <li><span class="tab">🗂 기록</span>에서 <b>"11월 3주차"</b>처럼 주차별로 지난 기록을 다시 볼 수 있어요</li>
-        <li>휴대폰을 바꿔도 로그인하면 그대로 있어요</li>
+        <li>찍는 동안 <b>자동 저장</b>돼요</li>
+        <li><span class="tab">🗂 기록</span>에서 <b>"11월 3주차"</b>처럼 주차별로 다시 보기</li>
+        <li>로그인하면 다른 폰에서도 이어서 할 수 있어요 (한 번에 한 폰만!)</li>
       </ul>
     </div>
   </div>
@@ -129,18 +134,18 @@ body{margin:0;background:#eef2f6;font-family:'Noto Sans KR',-apple-system,sans-s
     <div class="faq">
       <h3>🙋 이럴 땐 이렇게!</h3>
       <dl>
-        <dt>카메라가 안 켜져요</dt><dd>→ <b>📸 사진으로 찍기</b>를 쓰거나, 휴대폰 설정에서 카메라 허용을 켜 주세요.</dd>
-        <dt>바코드를 못 읽어요</dt><dd>→ 바코드를 <b>가운데에 크게</b>, 흔들리지 않게 찍어요. 그래도 안 되면 바코드 밑 <b>숫자를 직접 입력</b>해요.</dd>
-        <dt>비밀번호를 잊어버렸어요</dt><dd>→ <b>담당 OFC</b>에게 물어보세요.</dd>
-        <dt>카메라 허용을 자꾸 물어봐요</dt><dd>→ 스캔 화면을 <b>다 끝날 때까지 닫지 마세요</b>. 한 번 "항상 허용"을 고르면 다음부턴 안 물어요. (아이폰: 설정 → Safari → 카메라 → 허용)</dd>
+        <dt>카메라가 안 켜져요</dt><dd>→ <b>📸 사진으로 찍기</b>를 쓰거나, 휴대폰 설정에서 카메라를 허용해 주세요.</dd>
+        <dt>바코드를 못 읽어요</dt><dd>→ 가운데에 크게, 흔들리지 않게. 안 되면 바코드 밑 <b>숫자를 직접 입력</b>해요.</dd>
+        <dt>카메라 허용을 자꾸 물어봐요</dt><dd>→ 스캔 화면을 <b>끝날 때까지 닫지 마세요</b>. (아이폰: 설정 → Safari → 카메라 → 허용)</dd>
       </dl>
     </div>
     <div class="extra">
-      <h3>🚚 하루에 여러 번 배송할 때</h3>
-      <p><span class="tab">🚚 배송분할</span> → <b>납품목록 불러오기</b> → 배송 횟수(예: 2회) 고르기 → 회차마다 <b>%</b> 적기 (예: 60 / 40)</p>
-      <p>그다음 <span class="btn b-teal">1회차 검수</span>를 누르면 그 회차 물량만 찍을 수 있어요.</p>
-      <p>1회차에 <b>덜 온 상품은 2회차로 자동으로 넘어가요</b> (목록에 "이월 +3"처럼 표시).</p>
-      <p class="big">📱 꿀팁: 주소를 <b>홈 화면에 추가</b>하면 앱처럼 바로 열려요!</p>
+      <h3>🙋 더 궁금해요</h3>
+      <dl class="faq" style="padding:0;background:none">
+        <dt>개수를 잘못 넣었어요</dt><dd>→ 목록에서 그 상품을 <b>눌러서</b> 숫자를 고쳐요.</dd>
+        <dt>비밀번호를 잊어버렸어요</dt><dd>→ <b>담당 OFC</b>에게 물어보세요.</dd>
+      </dl>
+      <p class="big">📱 꿀팁: 주소를 <b>홈 화면에 추가</b>하면 앱처럼 열려요!</p>
     </div>
   </div>
 

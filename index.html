@@ -126,6 +126,15 @@ table.tb input{width:62px;padding:5px 6px;text-align:right;border-radius:7px}
 .resStop{margin-top:18px;background:none;border:0;color:#fff;opacity:.85;text-decoration:underline;font-size:14px;padding:10px}
 #lastScan{transition:background .2s}#lastScan.big{font-size:17px;font-weight:700;padding:14px}
 .savePill{font-size:12px}
+.stageTitle{font-size:18px;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.stageTitle{flex-wrap:wrap;row-gap:2px}.stageTitle small{font-size:12.5px;font-weight:500;color:var(--ink2);flex-basis:100%}
+.stageBar{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.stg{flex:none;border:2px solid var(--line);background:#fff;border-radius:12px;padding:7px 11px;text-align:left;line-height:1.25;min-width:92px}
+.stg b{display:block;font-size:14px}.stg small{font-size:11.5px;color:var(--ink2)}
+.stg.on{border-color:var(--blue);background:var(--blue-l)}
+.stg.done small{color:var(--ok);font-weight:700}
+.stg.cfg{border-style:dashed;color:var(--ink2);font-size:13px;font-weight:700;display:flex;align-items:center}
+.stageCard.deliv{border-top:4px solid var(--teal)}.stageCard.store{border-top:4px solid var(--blue)}
 .it .q small.carry{color:var(--warn);font-weight:700}
 #qtyOv{z-index:66}
 #doneOv{position:fixed;inset:0;z-index:75;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:24px;background:linear-gradient(160deg,#0f8a4c,#14a05a 55%,#00b6b0)}
@@ -173,7 +182,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v13</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v14</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -226,10 +235,14 @@ nav button{font-size:11px}
 
 <!-- ② 입고검수 -->
 <section class="tab" id="t-check">
+  <div class="card stageCard">
+    <div class="stageTitle" id="stageTitle"></div>
+    <div class="stageBar" id="stageBar"></div>
+  </div>
   <div class="card">
     <div class="stat">
-      <div class="ok"><b id="stDone">0</b><span>입고완료</span></div>
-      <div class="bad"><b id="stLeft">0</b><span>미입고·부족</span></div>
+      <div class="ok"><b id="stDone">0</b><span id="stDoneL">입고완료</span></div>
+      <div class="bad"><b id="stLeft">0</b><span id="stLeftL">미입고·부족</span></div>
       <div><b id="stOver">0</b><span>초과·목록외</span></div>
     </div>
     <div class="prog"><i id="progBar"></i></div>
@@ -257,7 +270,7 @@ nav button{font-size:11px}
     <input type="text" id="searchBox" placeholder="🔍 상품명·바코드 검색">
     <div class="chips" id="filterChips">
       <button class="chip on" data-f="all">전체</button>
-      <button class="chip" data-f="left">미입고·부족</button>
+      <button class="chip" data-f="left" id="chipLeft">미입고·부족</button>
       <button class="chip" data-f="done">완료</button>
       <button class="chip" data-f="over">초과·목록외</button>
     </div>
@@ -280,6 +293,8 @@ nav button{font-size:11px}
   </div>
   <div class="card">
     <h2>💬 카톡 보낼 문구</h2>
+    <div class="hint" style="margin-top:0">어떤 결과를 보낼지 고르세요</div>
+    <div class="chips" id="msgStage"></div>
     <label class="chk"><input type="checkbox" id="optDone" checked> 입고완료 품목도 목록으로 넣기</label>
     <label class="chk"><input type="checkbox" id="optCode"> 바코드 뒷자리 6자리 같이 표시</label>
     <textarea class="msg" id="msgBox"></textarea>
@@ -287,7 +302,7 @@ nav button{font-size:11px}
     <div class="note">복사 후 카카오톡 채팅방에 <b>붙여넣기</b> 하면 돼요. 문구는 위 칸에서 바로 고칠 수도 있어요.</div>
   </div>
   <div class="card">
-    <button class="btn teal big w100" id="btnSaveNow">💾 이 회차 기록 저장</button>
+    <button class="btn teal big w100" id="btnSaveNow">💾 지금 기록 저장</button>
     <div class="hint" style="text-align:center;margin-bottom:0" data-pill></div>
   </div>
 </section>
@@ -317,47 +332,32 @@ nav button{font-size:11px}
   </div>
 </section>
 
-<!-- ④ 배송분할 -->
+<!-- ④ 고객사 납품 회차 설정 -->
 <section class="tab" id="t-split">
   <div class="card">
-    <h2>🚚 1일치 물량 → 배송 회차 나누기</h2>
-    <div class="hint">하루 납품량을 배송 횟수에 맞춰 품목별로 나눠요. 나머지(자투리)는 정한 회차로 몰아줘요.</div>
-    <div class="grid2">
-      <button class="btn ghost" id="btnSplitLoad">납품목록 불러오기</button>
-      <button class="btn ghost" id="btnSplitPasteToggle">따로 붙여넣기</button>
-    </div>
-    <div id="splitPasteWrap" style="display:none;margin-top:8px">
-      <textarea id="splitPaste" placeholder="상품명(또는 바코드·상품명)  1일 수량"></textarea>
-      <button class="btn pri w100" id="btnSplitParse" style="margin-top:6px">반영</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>⚙️ 분할 설정</h2>
-    <label class="f">하루 배송 횟수</label>
+    <h2>🚚 고객사 납품 회차 설정</h2>
+    <div class="hint">점포에 들어온 물량을 고객사에 몇 번 나눠 납품할지 정해요.<br>앞 회차에 못 보낸 수량은 <b>다음 회차로 자동으로</b> 넘어가요.</div>
+    <label class="f">고객사 납품 횟수</label>
     <div class="chips" id="nChips"></div>
     <label class="f" style="margin-top:6px">회차별 비율(%)</label>
-    <div class="hint" style="margin-top:0">예) 오전 60 · 오후 40 처럼 회차마다 몇 %를 보낼지 적어주세요.</div>
+    <div class="hint" style="margin-top:0">예) 1회차 60 · 2회차 40 처럼 회차마다 몇 %를 보낼지 적어주세요.</div>
     <div class="rounds" id="roundsCfg" style="margin-top:10px"></div>
     <div class="grid2" style="margin-top:8px">
       <div><label class="f">자투리 몰아줄 회차</label>
         <select id="remSel"><option value="first">앞 회차부터</option><option value="last">뒤 회차부터</option></select></div>
       <div><label class="f">묶음 단위(입수)</label><input type="number" id="unitInp" min="1" value="1" inputmode="numeric"></div>
     </div>
-    <div class="hint">묶음 단위를 6으로 두면 6개 단위로 나누고, 6으로 안 떨어지는 나머지만 낱개로 붙여요.</div>
   </div>
 
   <div class="card">
-    <h2>📊 회차별 수량 <span class="cnt" id="splitCnt"></span></h2>
-    <div class="hint">1일 수량은 표에서 바로 고칠 수 있어요.</div>
+    <h2>📊 회차별 납품 계획 <span class="cnt" id="splitCnt"></span></h2>
+    <div class="hint">수량은 납품목록 기준이에요. 목록을 고치려면 📋 납품목록에서 고쳐주세요.</div>
     <div class="tbwrap"><table class="tb" id="splitTable"></table></div>
-    <div class="sec-title">회차별로 검수하기</div>
-    <div class="hint">회차를 고르면 그 회차 수량으로 입고검수 목록이 바뀌어요.</div>
-    <div class="row" id="splitToCheck" style="flex-wrap:wrap;gap:6px"></div>
+    <button class="btn pri big w100" id="btnRoundsStart" style="margin-top:12px">✅ 이대로 정하고 1회차 납품검수 시작</button>
   </div>
 
   <div class="card">
-    <h2>💬 분할표 카톡 문구</h2>
+    <h2>💬 납품 계획 카톡 문구</h2>
     <textarea class="msg" id="splitMsg"></textarea>
     <button class="btn pri big w100" id="btnCopySplit" style="margin-top:10px">📋 문구 복사하기</button>
   </div>
@@ -365,11 +365,11 @@ nav button{font-size:11px}
 </main>
 
 <nav>
-  <button data-t="t-list"><span class="ic">📋</span>납품목록</button>
-  <button data-t="t-check"><span class="ic">📷</span>입고검수</button>
-  <button data-t="t-result"><span class="ic">💬</span>결과·카톡</button>
-  <button data-t="t-split"><span class="ic">🚚</span>배송분할</button>
-  <button data-t="t-hist"><span class="ic">🗂</span>기록</button>
+  <button data-nav="list"><span class="ic">📋</span>①납품목록</button>
+  <button data-nav="store"><span class="ic">🏪</span>②점포입고</button>
+  <button data-nav="deliv"><span class="ic">🚚</span>③고객사납품</button>
+  <button data-nav="result"><span class="ic">💬</span>④결과·카톡</button>
+  <button data-nav="hist"><span class="ic">🗂</span>기록</button>
 </nav>
 
 <!-- 수량 입력 시트 -->
@@ -492,9 +492,10 @@ const normCode=c=>{let s=String(c||'').replace(/[\s-]/g,'');if(/^\d+$/.test(s))s
 
 let S={items:[],extras:[],meta:{store:'',date:today(),round:''},mode:'full',filter:'all',opt:{done:true,code:false},
   split:{n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},tab:'t-list'};
+S.batch=null;S.msgStage=null;
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.split=Object.assign({n:2,method:'equal',ratios:[50,50],labels:['1회차','2회차'],rem:'first',unit:1,items:[]},o.split||{});S.meta=Object.assign({store:'',date:today(),round:''},o.meta||{});}}catch(e){}
 if(S.modeV!==2){S.mode='qty';S.modeV=2}if(!['qty','full'].includes(S.mode))S.mode='qty';
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.__onSave)window.__onSave()};
+const save=()=>{try{syncBack()}catch(e){}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(window.__onSave)window.__onSave()};
 
 /* ---------- feedback ---------- */
 let actx=null;
@@ -571,11 +572,20 @@ function totals(){
 function findByCode(code){const k=normCode(code);if(!k)return null;return S.items.find(x=>normCode(x.code)===k)||null}
 
 /* ---------- tabs ---------- */
-function showTab(t){S.tab=t;$$('.tab').forEach(e=>e.classList.toggle('on',e.id===t));$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();if(t==='t-check'&&typeof refreshCarry==='function')setTimeout(()=>refreshCarry(),50);syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
-$$('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+function showTab(t){if(t==='t-list'&&S.batch&&S.batch.stage!=='store')setStage('store');S.tab=t;$$('.tab').forEach(e=>e.classList.toggle('on',e.id===t));
+  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();navActive();window.scrollTo(0,0)}
+function navActive(){const t=S.tab,st=S.batch?S.batch.stage:'store';
+  const cur=t==='t-list'?'list':t==='t-result'?'result':t==='t-hist'?'hist':t==='t-split'?'deliv':t==='t-check'?(st==='store'?'store':'deliv'):'';
+  $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.nav===cur))}
+$$('nav button').forEach(b=>b.onclick=()=>{const n=b.dataset.nav;
+  if(n==='list'){setStage('store');showTab('t-list')}
+  else if(n==='store'){if(!S.items.length&&!(S.batch&&S.batch.list.length)){toast('납품목록을 먼저 넣어주세요');setStage('store');showTab('t-list');return}setStage('store');showTab('t-check')}
+  else if(n==='deliv'){if(!S.batch||!S.batch.list.length){toast('납품목록을 먼저 넣어주세요');showTab('t-list');return}
+    if(!S.batch.roundsSet){showTab('t-split');return}
+    const st=S.batch.stage;setStage(typeof st==='number'?st:firstOpenRound());showTab('t-check')}
+  else if(n==='result')showTab('t-result');else showTab('t-hist')});
 
-function renderHeader(){const t=totals(),nm=typeof AUTH!=='undefined'&&AUTH?(AUTH.admin?'🔑 관리자':'🏪 '+AUTH.store):'';$('#hdrSub').innerHTML=`<b>${esc(nm)}</b><br>`+(S.items.length?`${S.items.length}품목 · 입고 ${t.pct}%`:'납품목록 미등록')}
+function renderHeader(){const t=totals(),nm=typeof AUTH!=='undefined'&&AUTH?(AUTH.admin?'🔑 관리자':'🏪 '+AUTH.store):'';$('#hdrSub').innerHTML=`<b>${esc(nm)}</b><br>`+(S.items.length?`${S.batch&&typeof stageName==='function'?stageName():'점포 입고'} ${t.pct}%`:'납품목록 미등록')}
 
 /* ---------- ① list ---------- */
 function renderList(){
@@ -590,7 +600,8 @@ $('#listView').addEventListener('change',e=>{const id=e.target.dataset.qid;if(!i
 $('#listView').addEventListener('click',e=>{const id=e.target.dataset.del;if(!id)return;S.items=S.items.filter(x=>x.id!==id);save();renderList()});
 function applyRows(rows){
   if(!rows.length){toast('읽을 수 있는 품목을 못 찾았어요. 바코드·상품명·수량 열을 확인해주세요');return}
-  if(!$('#appendMode').checked){S.items=[];S.extras=[]}
+  if(S.batch&&S.batch.stage!=='store')setStage('store');
+  if(!$('#appendMode').checked){S.items=[];S.extras=[];if(S.batch){S.batch.deliv=[];S.batch.store={}}}
   mergeInto(S.items,rows);save();renderList();toast(`${rows.length}개 행을 반영했어요`);
 }
 $('#btnParse').onclick=()=>{const t=$('#pasteBox').value;const rows=parseRows(t.split(/\r?\n/).filter(l=>l.trim()).map(cellsFromLine));applyRows(rows);if(rows.length)$('#pasteBox').value=''};
@@ -608,7 +619,7 @@ $('#btnAdd').onclick=()=>{const name=$('#addName').value.trim(),code=$('#addCode
   mergeInto(S.items,[{code,name:name||'(상품명 없음)',qty}]);$('#addName').value=$('#addCode').value=$('#addQty').value='';save();renderList();toast('추가했어요')};
 $('#btnSample').onclick=()=>{$('#pasteBox').value=['바코드\t상품명\t납품수량','8801043014809\t새우깡 90g\t20','8801062518432\t포카칩 오리지널 66g\t15','8801117752804\t오징어땅콩 98g\t10','8801019606557\t홈런볼 초코 46g\t12','8801062636358\t꼬깔콘 고소한맛 72g\t18','8801056038861\t허니버터칩 60g\t8','8801043031752\t양파링 84g\t10','8801117289102\t초코파이 情 12입\t6'].join('\n');toast('예시를 넣었어요. [붙여넣기 반영]을 눌러주세요')};
 $('#btnClearList').onclick=async()=>{if(!S.items.length)return;if(await confirmBox('납품목록을 모두 지울까요?','입고 기록도 함께 지워져요.')){S.items=[];S.extras=[];save();renderList()}};
-$('#btnGoCheck').onclick=()=>{if(!S.items.length){toast('납품목록을 먼저 등록해주세요');return}showTab('t-check')};
+$('#btnGoCheck').onclick=()=>{if(!S.items.length){toast('납품목록을 먼저 등록해주세요');return}setStage('store');showTab('t-check')};
 
 /* ---------- ② check ---------- */
 let lastLeft=null;
@@ -616,12 +627,12 @@ function checkDone(t){ /* 미입고·부족이 0이 되는 순간 완료 화면 
   if(S.items.length&&t.left===0&&lastLeft!==null&&lastLeft>0)showDone(t);
   lastLeft=S.items.length?t.left:null}
 function showDone(t){hideRes();
-  $('#doneSub').innerHTML=`${S.items.length}품목 · ${t.recvIn}개 입고`+(t.over?`<br>초과·목록외 ${t.over}건 있음`:'');
+  $('#doneSub').innerHTML=`${stageName()} · ${S.items.length}품목 · ${t.recvIn}개 ${isStore()?'입고':'납품'}`+(t.over?`<br>초과·목록외 ${t.over}건 있음`:'');
   $('#doneOv').classList.add('on');beep(true);setTimeout(()=>beep(true),160);try{navigator.vibrate&&navigator.vibrate([80,60,80,60,200])}catch(_){}}
 function renderCheck(){
   const t=totals();checkDone(t);
-  $('#stDone').textContent=t.done;$('#stLeft').textContent=t.left;$('#stOver').textContent=t.over;
-  $('#progBar').style.width=Math.min(100,t.pct)+'%';$('#progQty').textContent=`${t.recvIn} / ${t.plan}개 입고`;$('#progPct').textContent=t.pct+'%';
+  $('#stDone').textContent=t.done;$('#stLeft').textContent=t.left;$('#stOver').textContent=t.over;renderStage();
+  $('#progBar').style.width=Math.min(100,t.pct)+'%';$('#progQty').textContent=`${t.recvIn} / ${t.plan}개 ${isStore()?'입고':'납품'}`;$('#progPct').textContent=t.pct+'%';
   $$('#modeToggle button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
   $$('#filterChips .chip').forEach(b=>b.classList.toggle('on',b.dataset.f===S.filter));
   const q=$('#searchBox').value.trim().toLowerCase();
@@ -633,7 +644,7 @@ function renderCheck(){
   const v=$('#checkView');
   if(!S.items.length&&!S.extras.length){v.innerHTML='<div class="empty"><span class="e">📋</span>납품목록 탭에서 품목을 먼저 등록해주세요</div>';renderHeader();return}
   if(!arr.length){v.innerHTML='<div class="empty"><span class="e">✨</span>해당하는 품목이 없어요</div>';renderHeader();return}
-  v.innerHTML=arr.map(it=>{const [lbl,cls]=it.extra?['목록외','extra']:ST[it.s];
+  v.innerHTML=arr.map(it=>{const [lbl0,cls]=it.extra?['목록외','extra']:ST[it.s];const lbl=(!isStore()&&lbl0==='미입고')?'미납':lbl0;
     return `<div class="it s-${it.s}" data-open="${it.id}" data-extra="${it.extra?1:0}">
     <div class="nm"><b>${esc(it.name)}<span class="tag ${cls}">${lbl}</span></b><small>${it.code?esc(it.code):'바코드 없음'}</small></div>
     <div class="q"><b>${it.recv}</b><small>${it.extra?'목록외':'/ '+it.qty+'개'}</small>${it.carry>0?`<small class="carry">이월 +${it.carry}</small>`:''}</div>
@@ -703,7 +714,7 @@ window.addEventListener('popstate',()=>{
 });
 
 /* ---------- scan handling ---------- */
-$('#doneKakao').onclick=async()=>{$('#doneOv').classList.remove('on');if(liveOn)await stopLive();hideRes();showTab('t-result')};
+$('#doneKakao').onclick=async()=>{$('#doneOv').classList.remove('on');if(liveOn)await stopLive();hideRes();S.msgStage=S.batch?S.batch.stage:'store';showTab('t-result')};
 $('#doneClose').onclick=async()=>{$('#doneOv').classList.remove('on');if(liveOn)await stopLive();hideRes()};
 function scanProg(){const t=totals();$('#scanProg').textContent=`입고 ${t.recvIn}/${t.plan}개`;$('#scanProg2').textContent=`남은 품목 ${t.left}`}
 function setLast(it,ok,text){const el=$('#lastScan');if(!el)return;
@@ -713,7 +724,7 @@ function setLast(it,ok,text){const el=$('#lastScan');if(!el)return;
 function applyCode(raw){
   const code=String(raw||'').trim();if(!code)return null;
   const it=findByCode(code);
-  if(!it)return{ok:false,code,msg:'금번 입고 상품이 아닙니다'};
+  if(!it)return{ok:false,code,msg:notMine()};
   if(S.mode==='qty')return{ok:true,it,code,needQty:true};
   let msg;
   if(S.mode==='one'){it.recv+=1;it.t=Date.now();msg=`+1 → 입고 ${it.recv} / 납품 ${it.qty}개`}
@@ -726,7 +737,7 @@ function handleCode(raw){ /* 실시간 스캔·직접입력: 창 없이 바로 �
   beep(r.ok);flash(r.ok?'#14a05a':'#e5383b');renderCheck();
   if(r.ok&&r.needQty){setLast(r.it,true,'입고수량 입력 중…');if(liveOn){pauseLive();afterSheet=()=>resumeLive()}openScanQty(r.it,liveOn?'live':'manual');return}
   if(r.ok){setLast(r.it,true,r.msg);toast(`✅ ${r.it.name} · ${r.msg}`)}
-  else{setLast(null,false,`❌ 금번 입고 상품이 아닙니다 (${r.code})`);toast('❌ 금번 입고 상품이 아닙니다')}
+  else{setLast(null,false,`❌ ${notMine()} (${r.code})`);toast('❌ '+notMine())}
 }
 let photoQueue=[];
 function nextPhoto(){ /* 사진에서 읽은 '수량 입력' 대상 순서대로 */
@@ -787,55 +798,107 @@ $('#filePhoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';i
   const rs=codes.map(applyCode).filter(Boolean);renderCheck();
   if(S.mode==='qty'){const okR=rs.filter(r=>r.ok),bad=rs.filter(r=>!r.ok);
     if(okR.length){beep(true);hideRes();if(bad.length)toast(`❌ ${bad.length}개는 금번 입고 상품이 아니에요`);photoQueue=okR.map(r=>r.it);nextPhoto();return}
-    beep(false);const t=totals();showRes('bad','❌','금번 입고 상품이 아닙니다','바코드 '+bad.map(r=>r.code).join(', ')+`\n\n전체 ${t.recvIn}/${t.plan}개 · 남은 품목 ${t.left}`);return}
+    beep(false);const t=totals();showRes('bad','❌',notMine(),'바코드 '+bad.map(r=>r.code).join(', ')+`\n\n전체 ${t.recvIn}/${t.plan}개 · 남은 품목 ${t.left}`);return}
   const okR=rs.filter(r=>r.ok),bad=rs.filter(r=>!r.ok);const t=totals();
   const tail=`\n\n전체 ${t.recvIn}/${t.plan}개 · 남은 품목 ${t.left}`;
   beep(bad.length===0);
   if(rs.length===1){const r=rs[0];
     if(r.ok)showRes('ok','✅',r.it.name,r.msg+tail);
-    else showRes('bad','❌','금번 입고 상품이 아닙니다','바코드 '+r.code+tail);}
+    else showRes('bad','❌',notMine(),'바코드 '+r.code+tail);}
   else{showRes(bad.length?'bad':'ok',bad.length?'⚠️':'✅',`바코드 ${rs.length}개 인식`,
     okR.map(r=>'✅ '+r.it.name).concat(bad.map(r=>'❌ '+r.code+' 금번 입고 상품 아님')).join('\n')+tail)}
 };
+/* ---------- 한 묶음(주차) 안의 단계: 'store'=점포 입고, 0,1,2…=고객사 납품 회차 ---------- */
+const isStore=()=>!S.batch||S.batch.stage==='store';
+function stageName(st){if(st===undefined)st=S.batch?S.batch.stage:'store';return st==='store'?'점포 입고':(S.split.labels[st]||(st+1)+'회차')+' 납품'}
+function notMine(){return isStore()?'금번 입고 상품이 아닙니다':'이번 회차 납품 상품이 아닙니다'}
+const recvMap=arr=>{const o={};arr.forEach(x=>{o[itemKey(x)]=x.recv||0});return o};
+function ensureBatch(){if(!S.batch)S.batch={list:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty})),store:recvMap(S.items),deliv:[],stage:'store',roundsSet:false};
+  if(!Array.isArray(S.batch.deliv))S.batch.deliv=[];if(!S.batch.store)S.batch.store={};return S.batch}
+function syncBack(){ /* 화면의 목록(S.items) → 묶음에 기록 */
+  if(!S.batch)return;const b=S.batch;
+  if(b.stage==='store'){b.list=S.items.map(x=>({code:x.code,name:x.name,qty:x.qty}));b.store=recvMap(S.items)}
+  else if(typeof b.stage==='number'){b.deliv[b.stage]=recvMap(S.items)}}
+function roundPlan(k){ /* k회차 납품 예정 = (1~k회차 계획 합) − (앞 회차까지 실제 납품 합) */
+  const b=S.batch;return b.list.map(it=>{const parts=splitQty(it.qty),key=itemKey(it);let cum=0,got=0;
+    for(let j=0;j<=k;j++)cum+=parts[j]||0;for(let j=0;j<k;j++)got+=((b.deliv[j]||{})[key])||0;
+    const need=Math.max(0,cum-got);return{it,key,mine:parts[k]||0,need,carry:need-(parts[k]||0)}})}
+function buildItems(st){const b=S.batch;
+  if(st==='store')return b.list.map(it=>({id:uid(),code:it.code,name:it.name,qty:it.qty,recv:b.store[itemKey(it)]||0}));
+  const got=b.deliv[st]||{};
+  return roundPlan(st).filter(p=>p.need>0||got[p.key]>0).map(p=>({id:uid(),code:p.it.code,name:p.it.name,qty:p.need,carry:p.carry,recv:got[p.key]||0}))}
+function setStage(st){ensureBatch();syncBack();const b=S.batch;
+  if(st!=='store'&&(typeof st!=='number'||st<0||st>=S.split.n))st='store';
+  b.stage=st;S.msgStage=st;if(st!=='store')b.lastRound=st;S.items=buildItems(st);S.extras=[];lastLeft=null;
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function stagePct(st){const it=st===S.batch.stage?S.items:buildItems(st);let p=0,g=0;it.forEach(x=>{p+=x.qty;g+=Math.min(x.recv,x.qty)});return{p,g,pct:p?Math.round(g/p*1000)/10:0,left:it.filter(x=>x.recv<x.qty).length,started:it.some(x=>x.recv>0)}}
+function firstOpenRound(){for(let k=0;k<S.split.n;k++){if(stagePct(k).left>0)return k}return S.split.n-1}
+function renderStage(){const b=ensureBatch(),st=b.stage,card=$('.stageCard');
+  card.className='card stageCard '+(st==='store'?'store':'deliv');
+  $('#stageTitle').innerHTML=st==='store'?'🏪 점포 입고검수 <small>물건이 점포에 들어왔을 때</small>':`🚚 ${esc(S.split.labels[st])} 고객사 납품검수 <small>고객사에 가져갈 때 찍어요</small>`;
+  $('#stDoneL').textContent=st==='store'?'입고완료':'납품완료';$('#chipLeft').textContent=st==='store'?'미입고·부족':'미납·부족';$('#stLeftL').textContent=st==='store'?'미입고·부족':'미납·부족';
+  if(st==='store'){$('#stageBar').innerHTML='';$('#stageBar').style.display='none';return}
+  $('#stageBar').style.display='';
+  $('#stageBar').innerHTML=[...Array(S.split.n).keys()].map(k=>{const s2=stagePct(k);const ok=s2.p>0&&s2.left===0;
+      return `<button class="stg ${k===st?'on':''} ${ok?'done':''}" data-stg="${k}"><b>${esc(S.split.labels[k])}</b><small>${ok?'✅ 완료':s2.started?s2.pct+'% 진행':'⏳ '+s2.p+'개 예정'}</small></button>`}).join('')+
+    `<button class="stg cfg" data-stg="cfg">⚙️ 회차 설정</button>`}
+$('#stageBar').onclick=e=>{const btn=e.target.closest('[data-stg]');if(!btn)return;const v=btn.dataset.stg;
+  if(v==='cfg'){showTab('t-split');return}
+  const k=+v;if(k===S.batch.stage)return;setStage(k);renderCheck();navActive();
+  const cs=S.items.filter(x=>x.carry>0);toast(`${stageName()} 검수`+(cs.length?` · 앞 회차 이월 ${cs.length}품목(${cs.reduce((a,x)=>a+x.carry,0)}개) 포함`:''))};
+
 /* ---------- ③ result ---------- */
-function buildMsg(){
-  const t=totals(),m=S.meta,cd=S.opt.code;
+function buildMsg(stage){
+  if(stage===undefined)stage=S.msgStage!=null?S.msgStage:(S.batch?S.batch.stage:'store');
+  const store=stage==='store',items=(S.batch&&stage!==S.batch.stage)?buildItems(stage):S.items;
+  const m=S.meta,cd=S.opt.code,sp=S.split;
   const tail=c=>cd&&c?` (${String(c).slice(-6)})`:'';
+  const W=store?{t:'입고',done:'입고완료',none:'미입고',part:'부족 입고',over:'초과 입고'}:{t:'납품',done:'납품완료',none:'미납',part:'부족 납품',over:'초과 납품'};
   const L=[];
-  L.push('[GS25 스낵바 입고 확인]');
-  if(typeof AUTH!=='undefined'&&AUTH&&!AUTH.admin)L.push('🏪 점포: '+AUTH.store);if(m.store)L.push('📦 고객사: '+m.store);
-  L.push('📅 '+weekOf(m.date).label+' · '+dateLabel(m.date)+(m.round?' · 배송 '+m.round:''));
+  if(store){L.push('[GS25 스낵바 점포 입고 확인]');if(AUTH&&!AUTH.admin)L.push('🏪 점포: '+AUTH.store);if(m.store)L.push('📦 고객사: '+m.store)}
+  else{L.push('[GS25 스낵바 납품 확인]');if(m.store)L.push('📦 고객사: '+m.store);if(AUTH&&!AUTH.admin)L.push('🏪 납품 점포: '+AUTH.store)}
+  L.push('📅 '+weekOf(m.date).label+' · '+dateLabel(m.date)+(store?'':` · 🚚 ${sp.labels[stage]||(stage+1)+'회차'} 납품 (${stage+1}/${sp.n})`));
   L.push('━━━━━━━━━━━━');
-  const done=S.items.filter(x=>x.recv>=x.qty&&x.qty>0||(x.qty===0&&x.recv>0));
-  const short=S.items.filter(x=>x.recv<x.qty);
+  const done=items.filter(x=>x.recv>=x.qty&&x.qty>0||(x.qty===0&&x.recv>0));
+  const short=items.filter(x=>x.recv<x.qty);
   const none=short.filter(x=>x.recv===0),part=short.filter(x=>x.recv>0);
-  const over=S.items.filter(x=>x.recv>x.qty);
+  const over=items.filter(x=>x.recv>x.qty);
   const sum=a=>a.reduce((s,x)=>s+x,0);
-  L.push(`✅ 입고완료 ${done.length}품목`);
-  L.push(`❌ 미입고 ${none.length}품목 / ${sum(none.map(x=>x.qty))}개`);
-  L.push(`⚠️ 부족 ${part.length}품목 / ${sum(part.map(x=>x.qty-x.recv))}개`);
-  if(over.length||S.extras.length)L.push(`➕ 초과·목록외 ${over.length+S.extras.length}품목`);
-  L.push(`📦 총 ${t.plan}개 중 ${t.recvIn}개 입고 (${t.pct}%)`);
-  if(none.length){L.push('');L.push('■ 미입고');none.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.qty}개 미입고${x.carry>0?` (앞 회차 이월 ${x.carry} 포함)`:''}`))}
-  if(part.length){L.push('');L.push('■ 부족 입고');part.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 납품 ${x.qty} / 입고 ${x.recv} (${x.qty-x.recv}개 부족)${x.carry>0?` · 앞 회차 이월 ${x.carry} 포함`:''}`))}
-  if(over.length){L.push('');L.push('■ 초과 입고');over.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 납품 ${x.qty} / 입고 ${x.recv} (+${x.recv-x.qty})`))}
-  if(S.extras.length){L.push('');L.push('■ 목록외 입고');S.extras.forEach((x,i)=>L.push(`${i+1}. ${x.name}${x.code?' ('+x.code+')':''} — ${x.recv}개`))}
-  if(S.opt.done&&done.length){L.push('');L.push('■ 입고완료');done.filter(x=>x.recv<=x.qty).forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.recv}개`))}
-  if(!short.length&&S.items.length){L.push('');L.push('👍 전 품목 정상 입고되었습니다.')}
-  else if(short.length){L.push('');L.push('미입고·부족 품목 확인 부탁드립니다.')}
+  const plan=sum(items.map(x=>x.qty)),got=sum(items.map(x=>Math.min(x.recv,x.qty))),pct=plan?Math.round(got/plan*1000)/10:0;
+  const cr=x=>x.carry>0?` (앞 회차 이월 ${x.carry} 포함)`:'';
+  L.push(`✅ ${W.done} ${done.length}품목`);
+  L.push(`❌ ${W.none} ${none.length}품목 / ${sum(none.map(x=>x.qty))}개`);
+  L.push(`⚠️ ${W.part.replace(' '+W.t,'')} ${part.length}품목 / ${sum(part.map(x=>x.qty-x.recv))}개`);
+  if(over.length)L.push(`➕ ${W.over} ${over.length}품목`);
+  L.push(`📦 총 ${plan}개 중 ${got}개 ${W.t} (${pct}%)`);
+  if(none.length){L.push('');L.push('■ '+W.none);none.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.qty}개 ${W.none}${cr(x)}`))}
+  if(part.length){L.push('');L.push('■ '+W.part);part.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 예정 ${x.qty} / ${W.t} ${x.recv} (${x.qty-x.recv}개 부족)${cr(x)}`))}
+  if(over.length){L.push('');L.push('■ '+W.over);over.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 예정 ${x.qty} / ${W.t} ${x.recv} (+${x.recv-x.qty})`))}
+  if(S.opt.done&&done.length){L.push('');L.push('■ '+W.done);done.filter(x=>x.recv<=x.qty).forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.recv}개`))}
+  L.push('');
+  if(!short.length&&items.length)L.push(store?'👍 전 품목 정상 입고되었습니다.':`👍 ${sp.labels[stage]} 납품 품목 모두 확인되었습니다.`);
+  else if(short.length){
+    if(store)L.push('미입고·부족 품목 확인 부탁드립니다.');
+    else if(stage<sp.n-1)L.push(`부족한 수량은 ${sp.labels[stage+1]||'다음 회차'}에 함께 납품드리겠습니다.`);
+    else L.push('미납 수량은 확인 후 따로 안내드리겠습니다.');}
   return L.join('\n');
 }
-function renderMsg(){syncMeta();
+function renderMsg(){syncMeta();syncBack();
   $('#optDone').checked=!!S.opt.done;$('#optCode').checked=!!S.opt.code;
-  $('#msgBox').value=S.items.length||S.extras.length?buildMsg():'납품목록과 입고검수를 먼저 진행해주세요.';renderHeader()}
+  const b=S.batch,stages=['store'].concat(b&&b.roundsSet?[...Array(S.split.n).keys()]:[]);
+  if(S.msgStage==null||!stages.includes(S.msgStage))S.msgStage=b?b.stage:'store';
+  if(!stages.includes(S.msgStage))S.msgStage='store';
+  $('#msgStage').innerHTML=stages.map(st=>`<button class="chip ${st===S.msgStage?'on':''}" data-ms="${st}">${st==='store'?'🏪 점포 입고':'🚚 '+esc(S.split.labels[st])+' (고객사용)'}</button>`).join('');
+  $('#msgBox').value=(b&&b.list.length)?buildMsg(S.msgStage):'납품목록과 입고검수를 먼저 진행해주세요.';renderHeader()}
+$('#msgStage').onclick=e=>{const v=e.target.dataset.ms;if(v===undefined)return;S.msgStage=v==='store'?'store':+v;renderMsg()};
 function weekOf(ds){const d=new Date((ds||today())+'T00:00:00');if(isNaN(d))return{label:'',m:0,w:0};
   const th=new Date(d);th.setDate(d.getDate()-((d.getDay()+6)%7)+3); /* 그 주의 목요일 기준 */
   const m=th.getMonth()+1,w=Math.ceil(th.getDate()/7);return{label:`${m}월 ${w}주차`,m,w,y:th.getFullYear()}}
 const DOW='일월화수목금토';
 function dateLabel(ds){const d=new Date((ds||today())+'T00:00:00');return isNaN(d)?ds:`${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`}
-function syncMeta(){$$('[data-week]').forEach(el=>{const wk=weekOf(S.meta.date);el.innerHTML=`📆 ${wk.label} <small>${dateLabel(S.meta.date)}</small>`+(S.meta.round?`<small>· 배송 ${esc(S.meta.round)}</small><button data-clrround>회차 해제</button>`:'')});$$('[data-meta]').forEach(el=>{if(document.activeElement!==el)el.value=S.meta[el.dataset.meta]||(el.dataset.meta==='date'?today():'')})}
+function syncMeta(){$$('[data-week]').forEach(el=>{const wk=weekOf(S.meta.date);el.innerHTML=`📆 ${wk.label} <small>${dateLabel(S.meta.date)}</small>`});$$('[data-meta]').forEach(el=>{if(document.activeElement!==el)el.value=S.meta[el.dataset.meta]||(el.dataset.meta==='date'?today():'')})}
 document.addEventListener('click',e=>{if(e.target.dataset&&e.target.dataset.clrround!==undefined){S.meta.round='';save();syncMeta()}});
-document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.meta;if(!k)return;S.meta[k]=e.target.value;syncMeta();save();if($('#t-result').classList.contains('on'))$('#msgBox').value=buildMsg();renderHeader()});
+document.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.meta;if(!k)return;S.meta[k]=e.target.value;syncMeta();save();if($('#t-result').classList.contains('on'))$('#msgBox').value=buildMsg(S.msgStage);renderHeader()});
 $('#optDone').onchange=e=>{S.opt.done=e.target.checked;save();renderMsg()};
 $('#optCode').onchange=e=>{S.opt.code=e.target.checked;save();renderMsg()};
 async function copyText(txt,ta){
@@ -863,78 +926,33 @@ function splitQty(Q){
   return out;
 }
 function renderSplit(){
-  const sp=S.split;syncRounds();
+  const sp=S.split;syncRounds();syncBack();
   $('#nChips').innerHTML=[1,2,3,4,5,6].map(k=>`<button class="chip ${k===sp.n?'on':''}" data-n="${k}">${k}회</button>`).join('');
-    $('#remSel').value=sp.rem;$('#unitInp').value=sp.unit;
+  $('#remSel').value=sp.rem;$('#unitInp').value=sp.unit;
   $('#roundsCfg').innerHTML=sp.labels.map((l,i)=>`<div class="rd"><div class="t">${i+1}회차</div>
     <input type="text" data-lbl="${i}" value="${esc(l)}" placeholder="예) 오전 8시">
-    ${true?`<div class="row" style="gap:4px"><input type="number" inputmode="numeric" data-rt="${i}" value="${sp.ratios[i]}" style="margin:0"><span>%</span></div>`:''}</div>`).join('')+
-    (true?`<div class="hint" style="grid-column:1/-1">비율 합계 ${sp.ratios.reduce((a,b)=>a+(+b||0),0)}% (100이 아니어도 비율대로 나눠요)</div>`:'');
-  const items=sp.items;
+    <div class="row" style="gap:4px"><input type="number" inputmode="numeric" data-rt="${i}" value="${sp.ratios[i]}" style="margin:0"><span>%</span></div></div>`).join('')+
+    `<div class="hint" style="grid-column:1/-1">비율 합계 ${sp.ratios.reduce((a,b)=>a+(+b||0),0)}% (100이 아니어도 비율대로 나눠요)</div>`;
+  const items=S.batch?S.batch.list:[];
   $('#splitCnt').textContent=items.length?`${items.length}품목 · ${items.reduce((a,b)=>a+b.qty,0)}개`:'';
-  if(!items.length){$('#splitTable').innerHTML='<tr><td style="text-align:center;padding:24px;color:var(--ink2)">[납품목록 불러오기] 또는 [따로 붙여넣기]로 1일 물량을 넣어주세요</td></tr>';$('#splitToCheck').innerHTML='';$('#splitMsg').value='';save();return}
+  $('#btnRoundsStart').textContent=S.batch&&S.batch.roundsSet?'✅ 설정 저장하고 납품검수로 가기':'✅ 이대로 정하고 1회차 납품검수 시작';
+  if(!items.length){$('#splitTable').innerHTML='<tr><td style="text-align:center;padding:24px;color:var(--ink2)">📋 납품목록을 먼저 넣어주세요</td></tr>';$('#splitMsg').value='';return}
   const res=items.map(it=>splitQty(it.qty));const tot=Array(sp.n).fill(0);res.forEach(r=>r.forEach((v,i)=>tot[i]+=v));
-  $('#splitTable').innerHTML=`<thead><tr><th>상품</th><th>1일</th>${sp.labels.map(l=>`<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>`+
-    items.map((it,k)=>`<tr><td>${esc(it.name)}</td><td><input type="number" inputmode="numeric" data-sq="${k}" value="${it.qty}"></td>${res[k].map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')+
+  $('#splitTable').innerHTML=`<thead><tr><th>상품</th><th>전체</th>${sp.labels.map(l=>`<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>`+
+    items.map((it,k)=>`<tr><td>${esc(it.name)}</td><td>${it.qty}</td>${res[k].map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')+
     `<tr class="tot"><td>합계</td><td>${items.reduce((a,b)=>a+b.qty,0)}</td>${tot.map(v=>`<td>${v}</td>`).join('')}</tr></tbody>`;
-  $('#splitToCheck').innerHTML=sp.labels.map((l,i)=>`<button class="btn sm teal" data-go="${i}">${esc(l)} 검수 (${tot[i]}개)</button>`).join('');
-  const L=['[GS25 스낵바 배송 분할표]'];if(S.meta.store)L.push('📍 '+S.meta.store);
-  L.push(`📦 1일 ${items.reduce((a,b)=>a+b.qty,0)}개 → ${sp.n}회 배송`);L.push('━━━━━━━━━━━━');
+  const L=['[GS25 스낵바 납품 계획]'];if(S.meta.store)L.push('📦 고객사: '+S.meta.store);
+  L.push(`📅 ${weekOf(S.meta.date).label} · 총 ${items.reduce((a,b)=>a+b.qty,0)}개 → ${sp.n}회 납품`);L.push('━━━━━━━━━━━━');
   sp.labels.forEach((l,i)=>{L.push('');L.push(`■ ${l} — 총 ${tot[i]}개`);items.forEach((it,k)=>{if(res[k][i]>0)L.push(`· ${it.name} ${res[k][i]}개`)})});
-  $('#splitMsg').value=L.join('\n');save();
+  $('#splitMsg').value=L.join('\n');
 }
-$('#nChips').onclick=e=>{const n=+e.target.dataset.n;if(!n)return;S.split.n=n;S.split.ratios=Array(n).fill(0).map((_,i)=>i<n-1?Math.floor(100/n):100-Math.floor(100/n)*(n-1));renderSplit()};
-$('#remSel').onchange=e=>{S.split.rem=e.target.value;renderSplit()};
-$('#unitInp').onchange=e=>{S.split.unit=Math.max(1,num(e.target.value)||1);renderSplit()};
+$('#btnRoundsStart').onclick=()=>{if(!S.batch||!S.batch.list.length){toast('납품목록을 먼저 넣어주세요');return}
+  const first=!S.batch.roundsSet;S.batch.roundsSet=true;setStage(first?0:firstOpenRound());showTab('t-check');toast(`${stageName()} 납품검수를 시작해요`)};
+$('#nChips').onclick=e=>{const n=+e.target.dataset.n;if(!n)return;S.split.n=n;S.split.ratios=Array(n).fill(0).map((_,i)=>i<n-1?Math.floor(100/n):100-Math.floor(100/n)*(n-1));if(S.batch)S.batch.deliv.length=Math.min(S.batch.deliv.length,n);renderSplit();save()};
+$('#remSel').onchange=e=>{S.split.rem=e.target.value;renderSplit();save()};
+$('#unitInp').onchange=e=>{S.split.unit=Math.max(1,num(e.target.value)||1);renderSplit();save()};
 $('#roundsCfg').addEventListener('change',e=>{const l=e.target.dataset.lbl,r=e.target.dataset.rt;
-  if(l!==undefined)S.split.labels[+l]=e.target.value.trim()||(+l+1)+'회차';if(r!==undefined)S.split.ratios[+r]=Math.max(0,num(e.target.value));renderSplit()});
-$('#splitTable').addEventListener('change',e=>{const k=e.target.dataset.sq;if(k===undefined)return;S.split.items[+k].qty=Math.max(0,num(e.target.value));renderSplit()});
-$('#btnSplitLoad').onclick=()=>{if(!S.items.length){toast('납품목록이 비어 있어요');return}S.split.items=S.items.map(x=>({code:x.code,name:x.name,qty:x.qty}));renderSplit();toast('납품목록 수량을 1일 물량으로 불러왔어요')};
-$('#btnSplitPasteToggle').onclick=()=>{const w=$('#splitPasteWrap');w.style.display=w.style.display==='none'?'':'none'};
-$('#btnSplitParse').onclick=()=>{const rows=parseRows($('#splitPaste').value.split(/\r?\n/).filter(l=>l.trim()).map(cellsFromLine));if(!rows.length){toast('읽을 수 있는 품목이 없어요');return}
-  S.split.items=mergeInto([],rows).map(x=>({code:x.code,name:x.name,qty:x.qty}));$('#splitPaste').value='';$('#splitPasteWrap').style.display='none';renderSplit()};
-/* 지금 회차(2회차 이상)의 이월 수량을 앞 회차 기록으로 다시 계산 — 어떤 경로로 들어와도 맞춰짐 */
-let carryBusy=false;
-async function refreshCarry(){
-  const sp=S.split,k=sp.labels.indexOf(S.meta.round);
-  if(carryBusy||k<=0||!sp.items||!sp.items.length||!AUTH||AUTH.admin)return 0;
-  carryBusy=true;
-  try{
-    const base={store:S.meta.store,date:S.meta.date||today()},prevRecv=new Map();
-    for(let j=0;j<k;j++){const r=await findSaved({...base,round:sp.labels[j]});
-      if(r&&r.items)r.items.forEach(x=>{const key=itemKey(x);prevRecv.set(key,(prevRecv.get(key)||0)+(+x.recv||0))})}
-    if(S.meta.round!==sp.labels[k])return 0; /* 그 사이 회차가 바뀜 */
-    const map=new Map(S.items.map(x=>[itemKey(x),x]));let n=0,added=0;
-    sp.items.forEach(it=>{const parts=splitQty(it.qty);let cum=0;for(let j=0;j<=k;j++)cum+=parts[j];
-      const need=Math.max(0,cum-(prevRecv.get(itemKey(it))||0)),carry=need-parts[k],l=map.get(itemKey(it));
-      if(l){if(l.qty!==need||(l.carry||0)!==carry){l.qty=need;l.carry=carry;l.t=Date.now();n++}}
-      else if(need>0){S.items.push({id:uid(),code:it.code,name:it.name,qty:need,carry,recv:0,t:Date.now()});n++;added++}});
-    if(n){lastLeft=null;save();refreshViews();const cs=S.items.filter(x=>x.carry>0);
-      toast(`앞 회차 기록으로 수량을 다시 맞췄어요`+(cs.length?` · 이월 ${cs.length}품목(${cs.reduce((a,x)=>a+x.carry,0)}개)`:''))}
-    return n;
-  }catch(e){return 0}finally{carryBusy=false}
-}
-$('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefined)return;const sp=S.split,k=+i,lbl=sp.labels[k];
-  if(S.meta.round===lbl&&S.items.length){showTab('t-check');const n=await refreshCarry();if(!n)toast(`지금 ${lbl} 검수 중이에요`);return}
-  if(!(await confirmBox(`${lbl} 검수로 바꿀까요?`,(S.items.length?'지금 하던 검수는 먼저 저장돼요. 이 회차를 전에 했다면 하던 그대로 불러와요.':'')+(k>0?'<br><br>앞 회차에 덜 들어온 수량은 이 회차로 넘어와요.':''))))return;
-  /* 1) 지금 회차 먼저 저장 */
-  if(S.items.length&&AUTH&&!AUTH.admin){toast('지금 회차 저장 중…');await flushSave()}
-  const base={store:S.meta.store,date:S.meta.date||today()};
-  /* 2) 앞 회차들에 실제로 들어온 수량 모으기 */
-  const prevRecv=new Map();let prevDone=0;
-  for(let j=0;j<k;j++){const r=await findSaved({...base,round:sp.labels[j]});
-    if(r&&r.items){prevDone++;r.items.forEach(x=>{const key=itemKey(x);prevRecv.set(key,(prevRecv.get(key)||0)+(+x.recv||0))})}}
-  /* 3) 이 회차 납품 수량 = (1회차~이 회차 계획 합) − (앞 회차까지 들어온 합)  → 못 들어온 건 넘어오고, 더 들어온 건 빠짐 */
-  const plan=sp.items.map(it=>{const parts=splitQty(it.qty);let cum=0;for(let j=0;j<=k;j++)cum+=parts[j];
-    const got=prevRecv.get(itemKey(it))||0,need=Math.max(0,cum-got);return{it,mine:parts[k],qty:need,carry:need-parts[k]}});
-  const rec=await findSaved({...base,round:lbl});
-  const old=new Map(((rec&&rec.items)||[]).map(x=>[itemKey(x),x]));
-  S.items=plan.filter(p=>p.qty>0||old.has(itemKey(p.it))).map(p=>{const o=old.get(itemKey(p.it));
-    return{id:uid(),code:p.it.code,name:p.it.name,qty:p.qty,carry:p.carry,recv:o?o.recv:0,t:Date.now()}}).filter(x=>x.qty>0||x.recv>0);
-  S.extras=rec&&rec.extras?rec.extras.map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv,t:x.t||0})):[];
-  S.meta.round=lbl;lastLeft=null;save();showTab('t-check');
-  const cs=S.items.filter(x=>x.carry>0);
-  toast((rec&&rec.items?`${lbl} — 하던 검수를 불러왔어요`:`${lbl} 검수를 시작해요`)+(cs.length?` · 앞 회차 미입고 ${cs.length}품목(${cs.reduce((a,x)=>a+x.carry,0)}개) 포함`:''))};
+  if(l!==undefined)S.split.labels[+l]=e.target.value.trim()||(+l+1)+'회차';if(r!==undefined)S.split.ratios[+r]=Math.max(0,num(e.target.value));renderSplit();save()});
 $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 
 /* ---------- ⑤ 로그인 · 기록 저장/불러오기 ---------- */
@@ -946,10 +964,26 @@ const saveLocalHist=()=>{try{localStorage.setItem(HKEY,JSON.stringify(localHist.
 const skey=n=>String(n||'').replace(/\s+/g,'').toUpperCase();
 const myLocal=()=>localHist.filter(x=>AUTH&&!AUTH.admin&&skey(x.shop)===skey(AUTH.store));
 const recId=m=>[(m.store||'').trim(),m.date||'',(m.round||'-').trim()].join('|');
-function makeRecord(){const t=totals(),m=S.meta,wk=weekOf(m.date).label,rr=(m.round||'').trim();
-  return{id:recId(m),shop:AUTH&&AUTH.store,cust:(m.store||'').trim(),date:m.date||today(),week:wk,roundRaw:rr,round:wk+(rr?' · '+rr:''),
-  items:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:Date.now(),carry:x.carry||0})),extras:S.extras.map(x=>({code:x.code,name:x.name,recv:x.recv,t:Date.now()})),
-  itemCount:S.items.length,plan:t.plan,recv:t.recvIn,pct:t.pct,left:t.left,msg:buildMsg(),savedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,16)}}
+function makeRecord(){syncBack();const b=ensureBatch(),m=S.meta,wk=weekOf(m.date).label,store=buildItems('store');
+  let plan=0,got=0;store.forEach(x=>{plan+=x.qty;got+=Math.min(x.recv,x.qty)});
+  const parts=[`점포입고 ${plan?Math.round(got/plan*1000)/10:0}%`];
+  if(b.roundsSet)for(let k=0;k<S.split.n;k++){const s2=stagePct(k);parts.push(`${S.split.labels[k]} ${s2.p===0?'-':s2.left===0?'✅':s2.pct+'%'}`)}
+  const now=Date.now();
+  const wo=weekOf(m.date);
+  return{id:recId({store:m.store,date:`${wo.y}-${wo.m}월${wo.w}주`,round:'-'}),shop:AUTH&&AUTH.store,cust:(m.store||'').trim(),date:m.date||today(),week:wk,roundRaw:'',
+  round:wk+' · '+parts.join(' · '),
+  items:store.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:now})),extras:[],
+  batch:JSON.parse(JSON.stringify(b)),split:{n:S.split.n,ratios:S.split.ratios,labels:S.split.labels,rem:S.split.rem,unit:S.split.unit},
+  itemCount:store.length,plan,recv:got,pct:plan?Math.round(got/plan*1000)/10:0,left:store.filter(x=>x.recv<x.qty).length,
+  msg:buildMsg('store'),savedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,16)}}
+function restoreRecord(rec,reuse){ /* 기록 → 화면 */
+  if(rec.split)S.split=Object.assign(S.split,rec.split);
+  if(rec.batch&&rec.batch.list){S.batch=JSON.parse(JSON.stringify(rec.batch));}
+  else S.batch={list:rec.items.map(x=>({code:x.code,name:x.name,qty:x.qty})),store:recvMap(rec.items),deliv:[],stage:'store',roundsSet:false};
+  if(reuse){S.batch.store={};S.batch.deliv=[];S.batch.stage='store'}
+  S.meta={store:rec.cust||'',date:reuse?today():rec.date,round:''};
+  setStageFresh(reuse?'store':S.batch.stage)}
+function setStageFresh(st){const b=S.batch;if(st!=='store'&&(typeof st!=='number'||st>=S.split.n))st='store';b.stage=st;S.msgStage=st;S.items=buildItems(st);S.extras=[];lastLeft=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function setPill(t){$$('[data-pill]').forEach(e=>e.textContent=t)}
 async function api(action,body,auth){
   const r=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,auth:auth||AUTH},body||{}))});
@@ -1048,9 +1082,7 @@ async function pullToday(){
   try{const rows=(await api('list',{})).filter(r=>r.date===today());if(!rows.length)return;
     rows.sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)));
     const rec=await api('get',{id:rows[0].id});if(!rec||!rec.items||S.items.length)return;
-    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0,carry:x.carry||0}));
-    S.extras=(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv,t:x.t||0}));
-    S.meta={store:rec.cust||'',date:rec.date,round:rec.roundRaw||''};lastLeft=null;storeLocal();
+    restoreRecord(rec,false);
     showTab('t-check');toast(`👥 오늘 검수(${rec.round||''}${rec.cust?' · '+rec.cust:''})를 불러왔어요`)}catch(e){}}
 async function findSaved(meta){ /* 같은 날짜·고객사·회차로 저장된 기록 찾기 (서버 → 이 폰) */
   const cid=recId(meta);
@@ -1107,10 +1139,8 @@ $('#hCopy').onclick=()=>{const ta=document.createElement('textarea');ta.value=cu
 async function loadRecord(rec,reuse){
   if(S.items.length&&!(await confirmBox(reuse?'납품목록을 다시 쓸까요?':'이 기록을 불러올까요?','지금 화면의 검수 내용은 바뀌어요. (지금 내용은 자동 저장돼 있어요)')))return;
   if(S.items.length)await saveRecord(false);
-  S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:reuse?0:x.recv,t:reuse?Date.now():(x.t||0),carry:reuse?0:(x.carry||0)}));
-  S.extras=reuse?[]:(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
-  S.meta={store:rec.cust||'',date:reuse?today():rec.date,round:reuse?'':(rec.roundRaw||'')};
-  $('#histOv').classList.remove('on');save();showTab(reuse?'t-list':'t-check');toast(reuse?'납품목록을 불러왔어요. 납품일을 확인해주세요':'기록을 불러왔어요')}
+  restoreRecord(rec,reuse);
+  $('#histOv').classList.remove('on');save();showTab(reuse?'t-list':'t-check');renderCheck();toast(reuse?'납품목록을 불러왔어요. 납품일을 확인해주세요':'기록을 불러왔어요')}
 $('#hResume').onclick=()=>loadRecord(curRec,false);
 $('#hReuse').onclick=()=>loadRecord(curRec,true);
 $('#hDel').onclick=async()=>{if(!(await confirmBox('이 기록을 삭제할까요?',esc((curRec.shop||'')+' · '+(curRec.round||'')+' · '+curRec.date))))return;
@@ -1119,6 +1149,7 @@ $('#hDel').onclick=async()=>{if(!(await confirmBox('이 기록을 삭제할까�
   $('#histOv').classList.remove('on');toast('삭제했어요');loadHist()};
 
 /* ---------- init ---------- */
+S.meta.round='';if(S.items.length||S.batch){ensureBatch();if(S.batch.stage!=='store'&&!(typeof S.batch.stage==='number'&&S.batch.roundsSet))setStageFresh('store')}
 if(AUTH&&(AUTH.store||AUTH.admin)){applyAuthUI();showTab(AUTH.admin?'t-hist':(S.items.length?(S.tab||'t-check'):'t-list'));if(!AUTH.admin&&!S.items.length)pullToday()}else{showTab('t-list');showLogin()}
 })();
 </script>
