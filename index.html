@@ -182,7 +182,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v14</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v15</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -866,15 +866,20 @@ function buildMsg(stage){
   const sum=a=>a.reduce((s,x)=>s+x,0);
   const plan=sum(items.map(x=>x.qty)),got=sum(items.map(x=>Math.min(x.recv,x.qty))),pct=plan?Math.round(got/plan*1000)/10:0;
   const cr=x=>x.carry>0?` (앞 회차 이월 ${x.carry} 포함)`:'';
+  const cin=x=>x.carry>0?Math.min(x.carry,x.recv):0; /* 이번에 들어온 것 중 전회차 미입고분 */
+  const ci=x=>cin(x)>0?` (전회차 미입고 ${cin(x)}개 입고)`:'';
+  const carried=store?[]:items.filter(x=>cin(x)>0);
   L.push(`✅ ${W.done} ${done.length}품목`);
   L.push(`❌ ${W.none} ${none.length}품목 / ${sum(none.map(x=>x.qty))}개`);
   L.push(`⚠️ ${W.part.replace(' '+W.t,'')} ${part.length}품목 / ${sum(part.map(x=>x.qty-x.recv))}개`);
   if(over.length)L.push(`➕ ${W.over} ${over.length}품목`);
+  if(carried.length)L.push(`🔁 전회차 미입고 입고 ${carried.length}품목 / ${sum(carried.map(cin))}개`);
   L.push(`📦 총 ${plan}개 중 ${got}개 ${W.t} (${pct}%)`);
+  if(carried.length){L.push('');L.push('■ 전회차 미입고분 입고');carried.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 전회차 미입고 ${cin(x)}개 입고${cin(x)<x.carry?` (남은 ${x.carry-cin(x)}개)`:''}`))}
   if(none.length){L.push('');L.push('■ '+W.none);none.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.qty}개 ${W.none}${cr(x)}`))}
-  if(part.length){L.push('');L.push('■ '+W.part);part.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 예정 ${x.qty} / ${W.t} ${x.recv} (${x.qty-x.recv}개 부족)${cr(x)}`))}
+  if(part.length){L.push('');L.push('■ '+W.part);part.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 예정 ${x.qty} / ${W.t} ${x.recv} (${x.qty-x.recv}개 부족)${cin(x)>0?' · 전회차 미입고 '+cin(x)+'개 입고':cr(x)}`))}
   if(over.length){L.push('');L.push('■ '+W.over);over.forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — 예정 ${x.qty} / ${W.t} ${x.recv} (+${x.recv-x.qty})`))}
-  if(S.opt.done&&done.length){L.push('');L.push('■ '+W.done);done.filter(x=>x.recv<=x.qty).forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.recv}개`))}
+  if(S.opt.done&&done.length){L.push('');L.push('■ '+W.done);done.filter(x=>x.recv<=x.qty).forEach((x,i)=>L.push(`${i+1}. ${x.name}${tail(x.code)} — ${x.recv}개${ci(x)}`))}
   L.push('');
   if(!short.length&&items.length)L.push(store?'👍 전 품목 정상 입고되었습니다.':`👍 ${sp.labels[stage]} 납품 품목 모두 확인되었습니다.`);
   else if(short.length){
