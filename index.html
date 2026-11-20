@@ -172,7 +172,7 @@ nav button{font-size:11px}
 </head>
 <body>
 <header>
-  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v9</small></div>
+  <div class="logo">GS25 <b>스낵바</b> 입고검수 <small style="font-size:10px;opacity:.6;font-weight:400">v10</small></div>
   <div class="sub" id="hdrSub"></div>
 </header>
 
@@ -553,7 +553,7 @@ function mergeInto(list,rows,keepRecv){
   rows.forEach(r=>{
     const k=normCode(r.code);
     const ex=list.find(x=>(k&&normCode(x.code)===k)||(!k&&!x.code&&x.name===r.name));
-    if(ex)ex.qty+=r.qty; else list.push({id:uid(),code:r.code,name:r.name,qty:r.qty,recv:0});
+    if(ex){ex.qty+=r.qty;ex.t=Date.now()} else list.push({id:uid(),code:r.code,name:r.name,qty:r.qty,recv:0,t:Date.now()});
   });
   return list;
 }
@@ -571,7 +571,7 @@ function findByCode(code){const k=normCode(code);if(!k)return null;return S.item
 
 /* ---------- tabs ---------- */
 function showTab(t){S.tab=t;$$('.tab').forEach(e=>e.classList.toggle('on',e.id===t));$$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
+  if(t==='t-result')renderMsg();if(t==='t-hist')loadHist();if(t==='t-check'&&typeof pullNow==='function')setTimeout(()=>pullNow(true),50);syncMeta();if(t==='t-split')renderSplit();if(t==='t-check')renderCheck();if(t==='t-list')renderList();save();window.scrollTo(0,0)}
 $$('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 
 function renderHeader(){const t=totals(),nm=typeof AUTH!=='undefined'&&AUTH?(AUTH.admin?'🔑 관리자':'🏪 '+AUTH.store):'';$('#hdrSub').innerHTML=`<b>${esc(nm)}</b><br>`+(S.items.length?`${S.items.length}품목 · 입고 ${t.pct}%`:'납품목록 미등록')}
@@ -585,7 +585,7 @@ function renderList(){
    <button class="xbtn" data-del="${it.id}">✕</button></div>`).join('');
   renderHeader();
 }
-$('#listView').addEventListener('change',e=>{const id=e.target.dataset.qid;if(!id)return;const it=S.items.find(x=>x.id===id);if(it){it.qty=Math.max(0,num(e.target.value));save();renderList()}});
+$('#listView').addEventListener('change',e=>{const id=e.target.dataset.qid;if(!id)return;const it=S.items.find(x=>x.id===id);if(it){it.qty=Math.max(0,num(e.target.value));it.t=Date.now();save();renderList()}});
 $('#listView').addEventListener('click',e=>{const id=e.target.dataset.del;if(!id)return;S.items=S.items.filter(x=>x.id!==id);save();renderList()});
 function applyRows(rows){
   if(!rows.length){toast('읽을 수 있는 품목을 못 찾았어요. 바코드·상품명·수량 열을 확인해주세요');return}
@@ -648,7 +648,7 @@ $('#checkView').addEventListener('click',e=>{
   if(inc||dec){const it=getAny(inc||dec);if(!it)return;it.recv=Math.max(0,it.recv+(inc?1:-1));save();renderCheck();return}
   const row=e.target.closest('[data-open]');if(row){const it=getAny(row.dataset.open);if(it)openQty(it,row.dataset.extra==='1')}
 });
-$('#btnResetRecv').onclick=async()=>{if(await confirmBox('입고수량을 초기화할까요?','납품목록은 그대로 두고 입고 기록과 목록외 품목만 지워요.')){S.items.forEach(x=>x.recv=0);S.extras=[];save();renderCheck()}};
+$('#btnResetRecv').onclick=async()=>{if(await confirmBox('입고수량을 초기화할까요?','납품목록은 그대로 두고 입고 기록과 목록외 품목만 지워요.')){S.items.forEach(x=>{x.recv=0;x.t=Date.now()});S.extras=[];save();renderCheck()}};
 
 /* qty sheet (숫자판) */
 let qItem=null,qExtra=false,qSrc='',qVal='0',qFresh=true,afterSheet=null,qHist=false,ignorePop=false;
@@ -690,7 +690,7 @@ function finishSheet(fromBack){
 }
 function closeQty(){finishSheet(false)}
 $('#qCancel').onclick=()=>finishSheet(false);
-$('#qOk').onclick=()=>{const v=Math.max(0,num(qVal||0));const it=qItem;it.recv=v;
+$('#qOk').onclick=()=>{const v=Math.max(0,num(qVal||0));const it=qItem;it.recv=v;it.t=Date.now();
   save();renderCheck();setLast(it,true,`입고 ${it.recv} / 납품 ${it.qty}개`);toast(`✅ ${it.name} 입고 ${it.recv}개`);
   finishSheet(false)};
 $('#qDelExtra').onclick=()=>{S.extras=S.extras.filter(x=>x!==qItem);save();renderCheck();finishSheet(false)};
@@ -715,9 +715,9 @@ function applyCode(raw){
   if(!it)return{ok:false,code,msg:'금번 입고 상품이 아닙니다'};
   if(S.mode==='qty')return{ok:true,it,code,needQty:true};
   let msg;
-  if(S.mode==='one'){it.recv+=1;msg=`+1 → 입고 ${it.recv} / 납품 ${it.qty}개`}
+  if(S.mode==='one'){it.recv+=1;it.t=Date.now();msg=`+1 → 입고 ${it.recv} / 납품 ${it.qty}개`}
   else if(it.recv>=it.qty){msg=`이미 입고완료 (${it.recv} / ${it.qty}개)`}
-  else{it.recv=it.qty;msg=`${it.qty}개 입고완료`}
+  else{it.recv=it.qty;it.t=Date.now();msg=`${it.qty}개 입고완료`}
   save();return{ok:true,it,code,msg};
 }
 function handleCode(raw){ /* 실시간 스캔·직접입력: 창 없이 바로 처리 */
@@ -901,12 +901,12 @@ $('#splitToCheck').onclick=async e=>{const i=e.target.dataset.go;if(i===undefine
   const meta={store:S.meta.store,date:S.meta.date||today(),round:lbl};
   const rec=await findSaved(meta);
   if(rec&&rec.items&&rec.items.length){
-    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv}));
+    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0}));
     S.extras=(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
     S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} — 하던 검수를 불러왔어요`);return}
   /* 3) 처음 하는 회차면 분할 수량으로 새로 시작 */
   const res=sp.items.map(it=>splitQty(it.qty)[+i]);
-  S.items=sp.items.map((it,k)=>({id:uid(),code:it.code,name:it.name,qty:res[k],recv:0})).filter(x=>x.qty>0);S.extras=[];S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} 검수를 시작해요`)};
+  S.items=sp.items.map((it,k)=>({id:uid(),code:it.code,name:it.name,qty:res[k],recv:0,t:Date.now()})).filter(x=>x.qty>0);S.extras=[];S.meta.round=lbl;lastLeft=null;save();showTab('t-check');toast(`${lbl} 검수를 시작해요`)};
 $('#btnCopySplit').onclick=()=>copyText($('#splitMsg').value,$('#splitMsg'));
 
 /* ---------- ⑤ 로그인 · 기록 저장/불러오기 ---------- */
@@ -920,7 +920,7 @@ const myLocal=()=>localHist.filter(x=>AUTH&&!AUTH.admin&&skey(x.shop)===skey(AUT
 const recId=m=>[(m.store||'').trim(),m.date||'',(m.round||'-').trim()].join('|');
 function makeRecord(){const t=totals(),m=S.meta,wk=weekOf(m.date).label,rr=(m.round||'').trim();
   return{id:recId(m),shop:AUTH&&AUTH.store,cust:(m.store||'').trim(),date:m.date||today(),week:wk,roundRaw:rr,round:wk+(rr?' · '+rr:''),
-  items:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv})),extras:S.extras.map(x=>({code:x.code,name:x.name,recv:x.recv})),
+  items:S.items.map(x=>({code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0})),extras:S.extras.map(x=>({code:x.code,name:x.name,recv:x.recv,t:x.t||0})),
   itemCount:S.items.length,plan:t.plan,recv:t.recvIn,pct:t.pct,left:t.left,msg:buildMsg(),savedAt:new Date().toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}).slice(0,16)}}
 function setPill(t){$$('[data-pill]').forEach(e=>e.textContent=t)}
 async function api(action,body,auth){
@@ -958,7 +958,7 @@ function onLogin(a){
   const prev=S.owner;AUTH=a;try{localStorage.setItem(AUKEY,JSON.stringify(a))}catch(e){}
   if(skey(prev)!==skey(a.store)){S.items=[];S.extras=[];S.meta={store:'',date:today(),round:''};S.owner=a.store;save()}
   $('#loginOv').classList.remove('on');$('#lgPin').value=$('#lgPin2').value='';
-  applyAuthUI();showTab(a.admin?'t-hist':(S.items.length?'t-check':'t-list'));toast(a.admin?'관리자로 로그인했어요':`${a.store} 로그인`)}
+  applyAuthUI();showTab(a.admin?'t-hist':(S.items.length?'t-check':'t-list'));toast(a.admin?'관리자로 로그인했어요':`${a.store} 로그인`);if(!a.admin){if(S.items.length)pullNow(true);else pullToday()}}
 function applyAuthUI(){
   $('#acctName').textContent=AUTH?(AUTH.admin?'관리자':AUTH.store):'';
   $('#pinChangeRow').style.display=AUTH&&!AUTH.admin?'':'none';$('#adminCard').style.display=AUTH&&AUTH.admin?'':'none';
@@ -978,7 +978,7 @@ async function saveRecord(manual){
   clearTimeout(saveTimer);const rec=makeRecord();
   const i=localHist.findIndex(x=>x.id===rec.id&&skey(x.shop)===skey(rec.shop));if(i>=0)localHist[i]=rec;else localHist.unshift(rec);saveLocalHist();dirty=false;
   if(saving){dirty=true;return}saving=true;setPill('☁️ 저장 중…');
-  try{await api('save',{record:rec});setPill('☁️ 저장됨 '+rec.savedAt.slice(11));if(manual)toast('저장했어요')}
+  try{const m=await api('save',{record:rec});if(m&&m.items&&applyRemote(m))refreshViews();setPill('👥 함께 저장됨 '+rec.savedAt.slice(11));if(manual)toast('저장했어요')}
   catch(e){if(e.server&&/비밀번호|잠겼/.test(e.message)){setPill('⚠️ 다시 로그인 필요');toast(e.message);showLogin()}
     else{setPill('⚠️ 서버 저장 실패 · 폰에는 저장됨');if(manual)toast('서버 저장 실패 — 인터넷 확인 후 다시 눌러주세요')}}
   saving=false;if(dirty)window.__onSave();
@@ -986,6 +986,45 @@ async function saveRecord(manual){
 $('#btnSaveNow').onclick=()=>saveRecord(true);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function flushSave(){clearTimeout(saveTimer);for(let k=0;k<50&&saving;k++)await sleep(100);await saveRecord(false);for(let k=0;k<50&&saving;k++)await sleep(100)}
+/* ---------- 같은 점포 여러 폰 실시간 함께 보기 ---------- */
+const itemKey=x=>normCode(x.code)||('N:'+x.name);
+function storeLocal(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function applyRemote(rec){ /* 서버 기록을 합치기: 품목마다 더 최근에 고친 쪽이 이김 */
+  if(!rec||!rec.items)return false;let changed=false;
+  const map=new Map(S.items.map(x=>[itemKey(x),x]));
+  rec.items.forEach(r=>{const k=itemKey(r),l=map.get(k);
+    if(!l){S.items.push({id:uid(),code:r.code,name:r.name,qty:r.qty,recv:r.recv,t:r.t||0});changed=true}
+    else if((r.t||0)>(l.t||0)){if(l.recv!==r.recv||l.qty!==r.qty)changed=true;l.recv=r.recv;l.qty=r.qty;l.t=r.t;l.name=r.name}});
+  const em=new Map(S.extras.map(x=>[itemKey(x),x]));
+  (rec.extras||[]).forEach(r=>{const k=itemKey(r),l=em.get(k);
+    if(!l){S.extras.push({id:uid(),code:r.code,name:r.name,recv:r.recv,t:r.t||0});changed=true}
+    else if((r.t||0)>(l.t||0)){if(l.recv!==r.recv)changed=true;l.recv=r.recv;l.t=r.t}});
+  if(changed)storeLocal();return changed}
+function refreshViews(){const t=S.tab;if(t==='t-check')renderCheck();else{checkDone(totals());if(t==='t-list')renderList();if(t==='t-result')renderMsg()}renderHeader()}
+const serverId=()=>skey(AUTH.store)+'|'+recId({store:S.meta.store,date:S.meta.date||today(),round:S.meta.round});
+let syncing=false,lastSync='';
+async function pullNow(quiet){
+  if(!AUTH||AUTH.admin||!S.items.length||syncing||saving)return;
+  if($('#qtyOv').classList.contains('on'))return;
+  syncing=true;
+  try{const rec=await api('get',{id:serverId()});
+    if(applyRemote(rec)){refreshViews();if(!quiet)toast('👥 다른 폰에서 입력한 내용이 반영됐어요')}
+    lastSync=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    if(!dirty&&!saving)setPill('👥 함께 보기 · '+lastSync.slice(0,5)+' 동기화')}
+  catch(e){}
+  syncing=false}
+setInterval(()=>{if(!document.hidden)pullNow(false)},8000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)pullNow(false)});
+/* 새로 로그인했는데 이 폰이 비어 있으면 → 오늘 가장 최근 기록을 자동으로 불러오기 */
+async function pullToday(){
+  if(!AUTH||AUTH.admin||S.items.length)return;
+  try{const rows=(await api('list',{})).filter(r=>r.date===today());if(!rows.length)return;
+    rows.sort((a,b)=>String(b.savedAt).localeCompare(String(a.savedAt)));
+    const rec=await api('get',{id:rows[0].id});if(!rec||!rec.items||S.items.length)return;
+    S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:x.recv,t:x.t||0}));
+    S.extras=(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv,t:x.t||0}));
+    S.meta={store:rec.cust||'',date:rec.date,round:rec.roundRaw||''};lastLeft=null;storeLocal();
+    showTab('t-check');toast(`👥 오늘 검수(${rec.round||''}${rec.cust?' · '+rec.cust:''})를 불러왔어요`)}catch(e){}}
 async function findSaved(meta){ /* 같은 날짜·고객사·회차로 저장된 기록 찾기 (서버 → 이 폰) */
   const cid=recId(meta);
   if(AUTH&&!AUTH.admin){try{const rows=await api('list',{});const hit=rows.find(r=>String(r.id).split('|').slice(1).join('|')===cid);
@@ -1041,7 +1080,7 @@ $('#hCopy').onclick=()=>{const ta=document.createElement('textarea');ta.value=cu
 async function loadRecord(rec,reuse){
   if(S.items.length&&!(await confirmBox(reuse?'납품목록을 다시 쓸까요?':'이 기록을 불러올까요?','지금 화면의 검수 내용은 바뀌어요. (지금 내용은 자동 저장돼 있어요)')))return;
   if(S.items.length)await saveRecord(false);
-  S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:reuse?0:x.recv}));
+  S.items=rec.items.map(x=>({id:uid(),code:x.code,name:x.name,qty:x.qty,recv:reuse?0:x.recv,t:reuse?Date.now():(x.t||0)}));
   S.extras=reuse?[]:(rec.extras||[]).map(x=>({id:uid(),code:x.code,name:x.name,recv:x.recv}));
   S.meta={store:rec.cust||'',date:reuse?today():rec.date,round:reuse?'':(rec.roundRaw||'')};
   $('#histOv').classList.remove('on');save();showTab(reuse?'t-list':'t-check');toast(reuse?'납품목록을 불러왔어요. 납품일을 확인해주세요':'기록을 불러왔어요')}
@@ -1053,7 +1092,7 @@ $('#hDel').onclick=async()=>{if(!(await confirmBox('이 기록을 삭제할까�
   $('#histOv').classList.remove('on');toast('삭제했어요');loadHist()};
 
 /* ---------- init ---------- */
-if(AUTH&&(AUTH.store||AUTH.admin)){applyAuthUI();showTab(AUTH.admin?'t-hist':(S.items.length?(S.tab||'t-check'):'t-list'))}else{showTab('t-list');showLogin()}
+if(AUTH&&(AUTH.store||AUTH.admin)){applyAuthUI();showTab(AUTH.admin?'t-hist':(S.items.length?(S.tab||'t-check'):'t-list'));if(!AUTH.admin){if(S.items.length)pullNow(true);else pullToday()}}else{showTab('t-list');showLogin()}
 })();
 </script>
 </body>

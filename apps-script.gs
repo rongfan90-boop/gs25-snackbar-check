@@ -1,5 +1,5 @@
 /**
- * GS25 스낵바 입고검수 - 저장소 v2 (점포 로그인)
+ * GS25 스낵바 입고검수 - 저장소 v3 (점포 로그인 + 여러 폰 동시 사용)
  * 1) 아래 ADMIN_PIN 을 원하는 관리자 비밀번호(숫자)로 바꾸기
  * 2) 저장 → 배포 > 배포 관리 > ✏️ 편집 > 버전: "새 버전" > 배포   (주소는 그대로 유지됨)
  */
@@ -44,6 +44,31 @@ function auth_(a) {
   cache.remove(fk);
   s.getRange(i + 2, 5).setValue(now_());
   return { admin: false, store: rows[i][0], key: k, row: i + 2 };
+}
+
+/* 품목별로 더 최근에 고친 쪽(t)을 남김 → 두 사람이 동시에 찍어도 안 덮어씀 */
+function ik_(x) {
+  let c = String(x.code || '').replace(/[\s-]/g, '');
+  if (/^\d+$/.test(c)) c = c.replace(/^0+(?=\d)/, '');
+  return c || ('N:' + x.name);
+}
+function mergeList_(a, b) {
+  const m = new Map();
+  (a || []).forEach(x => m.set(ik_(x), x));
+  (b || []).forEach(x => { const k = ik_(x), o = m.get(k); if (!o || (Number(x.t) || 0) >= (Number(o.t) || 0)) m.set(k, x); });
+  return Array.from(m.values());
+}
+function merge_(oldR, newR) {
+  const out = Object.assign({}, oldR, newR);
+  out.items = mergeList_(oldR.items, newR.items);
+  out.extras = mergeList_(oldR.extras, newR.extras);
+  return out;
+}
+function stats_(r) {
+  let plan = 0, rv = 0, left = 0;
+  (r.items || []).forEach(x => { const q = Number(x.qty) || 0, v = Number(x.recv) || 0; plan += q; rv += Math.min(v, q); if (v < q) left++; });
+  r.plan = plan; r.recv = rv; r.left = left; r.itemCount = (r.items || []).length;
+  r.pct = plan ? Math.round(rv / plan * 1000) / 10 : 0;
 }
 
 function doGet() { return out_({ ok: true, data: 'GS25 snackbar api v2' }); }
@@ -96,14 +121,16 @@ function doPost(e) {
     }
     if (act === 'save') {
       if (who.admin) throw new Error('관리자 계정으로는 저장하지 않아요');
-      const r = d.record;
+      let r = d.record;
       r.shop = who.store;
       r.id = who.key + '|' + String(r.id || '');
-      r.savedAt = now_();
       const i = recs.findIndex(x => x[0] === r.id);
+      if (i >= 0) { try { r = merge_(JSON.parse(recs[i][12]), r); } catch (e) {} }   // 다른 폰 입력과 합치기
+      stats_(r);
+      r.savedAt = now_();
       writeRow_(rs, i >= 0 ? i + 2 : rs.getLastRow() + 1,
         [r.id, r.savedAt, r.shop, r.cust || '', r.date, r.round, r.itemCount, r.plan, r.recv, r.pct, r.left, r.msg || '', JSON.stringify(r)]);
-      return out_({ ok: true, data: { id: r.id, savedAt: r.savedAt } });
+      return out_({ ok: true, data: r });
     }
     if (act === 'delete') {
       const i = recs.findIndex(x => x[0] === d.id && mine(x));
